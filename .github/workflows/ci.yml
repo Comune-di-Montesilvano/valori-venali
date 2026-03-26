@@ -50,7 +50,10 @@ jobs:
         env:
           OWNER: ${{ github.repository_owner }}
         run: |
-          echo "IMAGE_OWNER=$(echo \"$OWNER\" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          # Remove any surrounding double quotes, then lowercase
+          OWNER_CLEAN=$(echo "$OWNER" | tr -d '"')
+          IMAGE_OWNER=$(echo "$OWNER_CLEAN" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_OWNER=$IMAGE_OWNER" >> $GITHUB_ENV
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
