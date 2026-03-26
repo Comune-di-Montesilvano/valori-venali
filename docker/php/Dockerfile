@@ -1,5 +1,9 @@
 FROM php:8.2-apache
 
+# Image metadata
+LABEL org.opencontainers.image.source="https://github.com/Comune-di-Montesilvano/valori-venali"
+LABEL org.opencontainers.image.maintainer="Comune-di-Montesilvano"
+
 # Installa estensioni PHP necessarie
 RUN docker-php-ext-install pdo pdo_mysql
 
