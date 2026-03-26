@@ -1,7 +1,10 @@
 services:
 
   db:
-    image: mariadb:11
+    # Build a custom image that contains the initdb scripts to avoid host bind mounts
+    build:
+      context: .
+      dockerfile: docker/db/Dockerfile
     container_name: valori_venali_db
     restart: unless-stopped
     environment:
@@ -11,7 +14,6 @@ services:
       MARIADB_PASSWORD: ${DB_PASS}
     volumes:
       - db_data:/var/lib/mysql
-      - ./initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - valori_net
     healthcheck:
