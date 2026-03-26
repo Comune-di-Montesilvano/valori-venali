@@ -12,8 +12,11 @@ Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbri
 | Web Server | Apache 2.4 |
 | Database | MariaDB 11 |
 | Container | Docker Compose |
+| Registry | GitHub Container Registry (GHCR) |
 
 ## 🚀 Avvio Rapido
+
+### Sviluppo (build locale)
 
 ```bash
 # 1. Clona il repository
@@ -29,6 +32,20 @@ docker compose up -d --build
 
 # 4. Apri il browser
 open http://localhost:8080
+```
+
+### Produzione (immagine prebuilt)
+
+L'immagine PHP/Apache è pubblicata automaticamente su GHCR ad ogni push su `master`. Per usarla in produzione, nel `docker-compose.yml` sostituisci il blocco `build:` del servizio `app` con:
+
+```yaml
+image: ghcr.io/comune-di-montesilvano/valori-venali:latest
+```
+
+Poi:
+
+```bash
+docker compose up -d
 ```
 
 ## 📋 Configurazione `.env`
@@ -48,17 +65,19 @@ open http://localhost:8080
 
 ```
 ├── docker-compose.yml
-├── .env                   # Segreti locali (gitignored)
-├── .env.example           # Template
-├── docker/php/Dockerfile  # PHP 8.2 + Apache
-├── initdb/01_schema.sql   # Schema + seed DB
-└── src/                   # Document root Apache
-    ├── index.php           # Calcolo stima (pagina pubblica)
+├── .env                    # Segreti locali (gitignored)
+├── .env.example            # Template
+├── docker/
+│   ├── php/Dockerfile      # PHP 8.2 + Apache (pubblicato su GHCR)
+│   └── db/Dockerfile       # MariaDB 11 con initdb embedded
+├── initdb/01_schema.sql    # Schema + seed DB (copiato nell'immagine db)
+└── src/                    # Document root Apache
+    ├── index.php            # Calcolo stima (pagina pubblica)
     ├── login.php
     ├── logout.php
-    ├── includes/           # Config, DB PDO, Auth
-    ├── layout/             # Header/Footer Bootstrap Italia
-    └── admin/              # Area amministrativa
+    ├── includes/            # Config, DB PDO, Auth
+    ├── layout/              # Header/Footer Bootstrap Italia
+    └── admin/               # Area amministrativa
         ├── dashboard.php
         ├── importa_omi.php
         ├── parametri_omi.php
@@ -94,6 +113,9 @@ docker compose exec db mariadb -u vvenali -pchangeme123 valori_venali
 
 # Ricostruire dopo modifiche al Dockerfile
 docker compose up -d --build
+
+# Aggiornare l'immagine da GHCR (produzione)
+docker compose pull && docker compose up -d
 
 # Stop e rimozione volumi
 docker compose down -v

@@ -1,10 +1,7 @@
 services:
 
   db:
-    # Build a custom image that contains the initdb scripts to avoid host bind mounts
-    build:
-      context: .
-      dockerfile: docker/db/Dockerfile
+    image: mariadb:11
     container_name: valori_venali_db
     restart: unless-stopped
     environment:
@@ -23,12 +20,8 @@ services:
       retries: 5
 
   app:
-    # In development leave `build` to rebuild from local Dockerfile.
-    # For production, you can use the published image on GHCR:
-    # image: ghcr.io/Comune-di-Montesilvano/valori-venali:latest
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+    # Production: use the prebuilt image from GHCR by default
+    image: ghcr.io/comune-di-montesilvano/valori-venali:latest
     container_name: valori_venali_app
     restart: unless-stopped
     depends_on:

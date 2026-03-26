@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  db:
+    # Development: build local custom DB image that embeds initdb scripts
+    build:
+      context: .
+      dockerfile: docker/db/Dockerfile
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+
+  app:
+    # Development: build local app image and mount source for live edits
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./src/uploads:/var/www/html/uploads:delegated
+
+volumes:
+  db_data:
+  app_code:
+  app_uploads:

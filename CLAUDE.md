@@ -5,12 +5,15 @@ Strumento web per il calcolo dei valori venali delle aree fabbricabili, ad uso d
 ## Stack
 
 - **Backend:** PHP 8.2, Apache 2.4
-- **Database:** MariaDB 11
+- **Database:** MariaDB 11 (custom image con initdb embedded)
 - **Frontend:** Bootstrap Italia v2.13.0 (CDN)
-- **Infra:** Docker Compose
-- **CI/CD:** GitHub Actions (lint PHP + docker build)
+- **Infra:** Docker Compose (named volumes, no bind mount)
+- **CI/CD:** GitHub Actions — lint PHP + build & push su GHCR
+- **Registry:** `ghcr.io/<owner>/valori-venali:latest`
 
 ## Avvio rapido
+
+### Sviluppo (build locale)
 
 ```bash
 cp .env.example .env
@@ -19,12 +22,21 @@ docker compose up -d --build
 # App disponibile su http://localhost:<APP_PORT>
 ```
 
+### Produzione (immagine prebuilt da GHCR)
+
+Nel `docker-compose.yml`, sostituire il blocco `build:` del servizio `app` con:
+
+```yaml
+image: ghcr.io/comune-di-montesilvano/valori-venali:latest
+```
+
 ### Comandi Docker utili
 
 ```bash
 docker compose logs -f                                        # log in tempo reale
 docker compose exec db mariadb -u vvenali -p valori_venali   # accesso MariaDB
 docker compose down -v                                        # spegni e rimuovi volumi
+docker compose pull                                           # aggiorna immagine GHCR
 ```
 
 ## Struttura del progetto
@@ -99,11 +111,27 @@ Le variabili critiche da impostare per ogni Comune:
 **Modificare coefficienti abbattimento:** Admin → Coefficienti Abbattimento
 **Mappare fogli catastali:** Admin → Fogli OMI
 
+## Infrastruttura Docker
+
+| Servizio | Immagine | Note |
+|---------|---------|------|
+| `db` | Custom `docker/db/Dockerfile` | MariaDB 11 + `initdb/` embedded nell'immagine |
+| `app` | Custom `docker/php/Dockerfile` | PHP 8.2-Apache, pubblicata su GHCR |
+
+**Volumi:**
+- `db_data` — dati MariaDB
+- `app_code` — codice applicativo
+- `app_uploads` — CSV e upload persistenti
+
+Lo schema DB è incluso nell'immagine `db` (non serve bind mount su `initdb/`).
+
 ## CI/CD
 
 `.github/workflows/ci.yml` esegue su push/PR a `master`:
-1. PHP lint su tutti i file `src/*.php`
-2. Docker build per validare che il container si costruisca correttamente
+1. **PHP Lint** — syntax check su tutti i `src/*.php`
+2. **Build & Push GHCR** — pubblica `ghcr.io/<owner>/valori-venali:latest` e il tag SHA
+
+Richiede `packages: write` per il push sul registry.
 
 ## Versione
 
