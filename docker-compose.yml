@@ -25,7 +25,8 @@ services:
     # For production, you can use the published image on GHCR:
     # image: ghcr.io/Comune-di-Montesilvano/valori-venali:latest
     build:
-      context: ./docker/php
+      context: .
+      dockerfile: docker/php/Dockerfile
     container_name: valori_venali_app
     restart: unless-stopped
     depends_on:
