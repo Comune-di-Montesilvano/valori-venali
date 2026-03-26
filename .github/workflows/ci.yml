@@ -68,7 +68,8 @@ jobs:
       - name: Build and push image to GHCR
         uses: docker/build-push-action@v4
         with:
-          context: ./docker/php
+          # build context is repository root so Dockerfile can COPY src/
+          context: .
           file: docker/php/Dockerfile
           push: true
           tags: |

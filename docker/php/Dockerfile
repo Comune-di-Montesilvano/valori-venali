@@ -17,4 +17,13 @@ RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 RUN echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size = 25M"       >> /usr/local/etc/php/conf.d/uploads.ini
 
+# Copia i sorgenti dell'app nell'immagine (build context: repository root)
+WORKDIR /var/www/html
+COPY src/ /var/www/html/
+
+# Assicura permessi corretti per www-data e crea cartella uploads
+RUN chown -R www-data:www-data /var/www/html \
+    && mkdir -p /var/www/html/uploads \
+    && chown -R www-data:www-data /var/www/html/uploads
+
 EXPOSE 80
