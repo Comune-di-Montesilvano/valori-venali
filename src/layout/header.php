@@ -277,7 +277,7 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
         </li>
       <?php else: ?>
         <li class="nav-item ms-auto">
-          <a class="nav-link" href="<?= APP_URL ?>/login.php">🔐 Admin</a>
+          <a class="nav-link" href="<?= APP_URL ?>/admin/login.php">🔐 Admin</a>
         </li>
       <?php endif; ?>
     </ul>

@@ -52,7 +52,7 @@ function isLoggedIn(): bool {
 function requireAuth(): void {
     startSecureSession();
     if (!isLoggedIn()) {
-        header('Location: ' . APP_URL . '/login.php?next=' . urlencode($_SERVER['REQUEST_URI']));
+        header('Location: ' . APP_URL . '/admin/login.php?next=' . urlencode($_SERVER['REQUEST_URI']));
         exit;
     }
 }

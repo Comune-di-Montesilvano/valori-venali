@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
 
 startSecureSession();
 seedAdmin();
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = 'Accesso Area Riservata';
-include __DIR__ . '/layout/header.php';
+include __DIR__ . '/../layout/header.php';
 ?>
 
 <div class="row justify-content-center">
@@ -44,7 +44,7 @@ include __DIR__ . '/layout/header.php';
           </div>
         <?php endif; ?>
 
-        <form method="post" action="<?= APP_URL ?>/login.php<?= isset($_GET['next']) ? '?next=' . urlencode($_GET['next']) : '' ?>" novalidate>
+        <form method="post" action="<?= APP_URL ?>/admin/login.php<?= isset($_GET['next']) ? '?next=' . urlencode($_GET['next']) : '' ?>" novalidate>
           <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
 
           <div class="mb-3">
@@ -78,4 +78,4 @@ include __DIR__ . '/layout/header.php';
   </div>
 </div>
 
-<?php include __DIR__ . '/layout/footer.php'; ?>
+<?php include __DIR__ . '/../layout/footer.php'; ?>
