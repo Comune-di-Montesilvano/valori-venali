@@ -8,6 +8,12 @@
  */
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/settings.php';
+
+Settings::load();
+$customLogo = Settings::get('logo_path');
+$customFavicon = Settings::get('favicon_path');
+
 
 $pageTitle = $pageTitle ?? 'Valori Venali Aree Fabbricabili';
 $comuneNome = COMUNE_NOME;
@@ -29,12 +35,21 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
   <meta name="keywords" content="<?= htmlspecialchars($seoKeywords) ?>"/>
   <link rel="canonical" href="<?= htmlspecialchars($canonicalUrl) ?>"/>
 
+  <?php if ($customFavicon): ?>
+    <link rel="icon" href="<?= APP_URL ?>/uploads/<?= htmlspecialchars($customFavicon) ?>" type="image/x-icon">
+    <link rel="shortcut icon" href="<?= APP_URL ?>/uploads/<?= htmlspecialchars($customFavicon) ?>" type="image/x-icon">
+  <?php else: ?>
+    <link rel="icon" href="<?= APP_URL ?>/favicon.png" type="image/png">
+  <?php endif; ?>
+
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website"/>
   <meta property="og:url" content="<?= htmlspecialchars($canonicalUrl) ?>"/>
   <meta property="og:title" content="<?= htmlspecialchars($pageTitle . ' — ' . $comuneNome) ?>"/>
   <meta property="og:description" content="<?= htmlspecialchars($seoDescription) ?>"/>
-  <meta property="og:image" content="<?= APP_URL ?>/favicon.png"/>
+  <meta property="og:image" content="<?= $customFavicon ? APP_URL . '/uploads/' . $customFavicon : APP_URL . '/favicon.png' ?>"/>
+
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image"/>
@@ -202,8 +217,13 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
 <div class="site-header">
   <div class="container">
     <div class="d-flex align-items-center gap-3">
-      <div class="logo-icon">🏗️</div>
+      <?php if ($customLogo): ?>
+        <img src="<?= APP_URL ?>/uploads/<?= htmlspecialchars($customLogo) ?>" alt="Logo <?= htmlspecialchars($comuneNome) ?>" style="max-height: 48px; width: auto; border-radius: 8px;">
+      <?php else: ?>
+        <div class="logo-icon">🏗️</div>
+      <?php endif; ?>
       <div>
+
         <div class="comune-label"><?= htmlspecialchars($comuneNome . $comuneProv) ?></div>
         <h1>Valori Venali Aree Fabbricabili</h1>
       </div>
@@ -244,7 +264,12 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
              href="<?= APP_URL ?>/admin/fogli_omi.php">🗺 Fogli Catastali</a>
         </li>
         <li class="nav-item">
+          <a class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'impostazioni.php' ? 'active' : '' ?>"
+             href="<?= APP_URL ?>/admin/impostazioni.php">🛠 Impostazioni</a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'backup.php' ? 'active' : '' ?>"
+
              href="<?= APP_URL ?>/admin/backup.php">💾 Backup</a>
         </li>
         <li class="nav-item ms-auto">
