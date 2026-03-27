@@ -3,7 +3,7 @@ services:
   db:
     image: mariadb:11
     container_name: valori_venali_db
-    restart: unless-stopped
+    restart: always
     environment:
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS}
       MARIADB_DATABASE: ${DB_NAME}
@@ -23,7 +23,7 @@ services:
     # Production: use the prebuilt image from GHCR by default
     image: ghcr.io/comune-di-montesilvano/valori-venali:latest
     container_name: valori_venali_app
-    restart: unless-stopped
+    restart: always
     depends_on:
       db:
         condition: service_healthy
