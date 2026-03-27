@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
+-- Impostazioni applicazione (logo, favicon, ecc.)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `settings` (
+  `setting_key`   VARCHAR(50)  NOT NULL,
+  `setting_value` TEXT         NULL,
+  PRIMARY KEY (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ------------------------------------------------------------
 -- Seed dati: coefficienti abbattimento standard
 -- ------------------------------------------------------------
 INSERT IGNORE INTO `omi_abbattimenti` (`descrizione`, `valore`) VALUES
