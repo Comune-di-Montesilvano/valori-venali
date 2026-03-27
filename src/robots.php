@@ -8,7 +8,7 @@ Allow: /index.php
 Disallow: /admin/
 Disallow: /includes/
 Disallow: /layout/
-Disallow: /login.php
-Disallow: /logout.php
+Disallow: /admin/login.php
+Disallow: /admin/logout.php
 
 Sitemap: <?= APP_URL ?>/sitemap.xml
