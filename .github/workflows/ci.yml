@@ -47,15 +47,24 @@ jobs:
           IMAGE_OWNER=$(echo "$OWNER_CLEAN" | tr '[:upper:]' '[:lower:]')
           echo "IMAGE_OWNER=$IMAGE_OWNER" >> $GITHUB_ENV
 
-          # Determine version from tag or branch/SHA
+          # Determine version and revision (for links)
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
+            REVISION=${GITHUB_REF#refs/tags/}
+            IS_TAG="true"
+            LATEST_TAG="ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:latest"
           else
             BRANCH_NAME=${GITHUB_REF#refs/heads/}
             VERSION="${BRANCH_NAME}-$(echo $GITHUB_SHA | cut -c1-7)"
+            REVISION=${GITHUB_SHA}
+            IS_TAG="false"
+            LATEST_TAG=""
           fi
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APP_REVISION=$REVISION" >> $GITHUB_ENV
+          echo "APP_IS_TAG=$IS_TAG" >> $GITHUB_ENV
           echo "GITHUB_URL=https://github.com/${{ github.repository }}" >> $GITHUB_ENV
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
 
       - name: Log in to GitHub Container Registry
@@ -74,9 +83,11 @@ jobs:
           push: true
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
+            APP_REVISION=${{ env.APP_REVISION }}
+            APP_IS_TAG=${{ env.APP_IS_TAG }}
             GITHUB_URL=${{ env.GITHUB_URL }}
           tags: |
-            ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:latest
+            ${{ env.LATEST_TAG }}
             ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:${{ env.APP_VERSION }}
             ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:${{ github.sha }}
 

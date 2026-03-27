@@ -2,8 +2,12 @@ FROM php:8.2-apache
 
 # Image metadata
 ARG APP_VERSION=dev
+ARG APP_REVISION=unknown
+ARG APP_IS_TAG=false
 ARG GITHUB_URL=https://github.com/Comune-di-Montesilvano/valori-venali
 ENV APP_VERSION=$APP_VERSION
+ENV APP_REVISION=$APP_REVISION
+ENV APP_IS_TAG=$APP_IS_TAG
 ENV GITHUB_URL=$GITHUB_URL
 LABEL org.opencontainers.image.source=$GITHUB_URL
 LABEL org.opencontainers.image.maintainer="Comune-di-Montesilvano"
