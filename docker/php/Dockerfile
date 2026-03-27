@@ -2,8 +2,10 @@ FROM php:8.2-apache
 
 # Image metadata
 ARG APP_VERSION=dev
+ARG GITHUB_URL=https://github.com/Comune-di-Montesilvano/valori-venali
 ENV APP_VERSION=$APP_VERSION
-LABEL org.opencontainers.image.source="https://github.com/Comune-di-Montesilvano/valori-venali"
+ENV GITHUB_URL=$GITHUB_URL
+LABEL org.opencontainers.image.source=$GITHUB_URL
 LABEL org.opencontainers.image.maintainer="Comune-di-Montesilvano"
 
 # Installa estensioni PHP necessarie

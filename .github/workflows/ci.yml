@@ -47,13 +47,15 @@ jobs:
           IMAGE_OWNER=$(echo "$OWNER_CLEAN" | tr '[:upper:]' '[:lower:]')
           echo "IMAGE_OWNER=$IMAGE_OWNER" >> $GITHUB_ENV
 
-          # Determine version from tag or SHA
+          # Determine version from tag or branch/SHA
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
           else
-            VERSION=$(echo $GITHUB_SHA | cut -c1-7)
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            VERSION="${BRANCH_NAME}-$(echo $GITHUB_SHA | cut -c1-7)"
           fi
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "GITHUB_URL=https://github.com/${{ github.repository }}" >> $GITHUB_ENV
 
 
       - name: Log in to GitHub Container Registry
@@ -72,6 +74,7 @@ jobs:
           push: true
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
+            GITHUB_URL=${{ env.GITHUB_URL }}
           tags: |
             ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:latest
             ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:${{ env.APP_VERSION }}
