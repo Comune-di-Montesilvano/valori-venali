@@ -16,7 +16,7 @@ define('COMUNE_NOME',      getenv('COMUNE_NOME')      ?: 'Comune');
 define('COMUNE_PROVINCIA', getenv('COMUNE_PROVINCIA') ?: '');
 
 // Versione app
-define('APP_VERSION', '2.2.0');
+define('APP_VERSION', getenv('APP_VERSION') ?: '2.2.0');
 define('GITHUB_URL',  'https://github.com/mirkochipdotcom/valori-venali');
 
 // SEO

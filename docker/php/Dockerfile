@@ -1,6 +1,8 @@
 FROM php:8.2-apache
 
 # Image metadata
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 LABEL org.opencontainers.image.source="https://github.com/Comune-di-Montesilvano/valori-venali"
 LABEL org.opencontainers.image.maintainer="Comune-di-Montesilvano"
 
