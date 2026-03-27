@@ -52,7 +52,7 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/}
             REVISION=${GITHUB_REF#refs/tags/}
             IS_TAG="true"
-            LATEST_TAG="ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:latest"
+            LATEST_TAG="ghcr.io/$IMAGE_OWNER/valori-venali:latest"
           else
             BRANCH_NAME=${GITHUB_REF#refs/heads/}
             VERSION="${BRANCH_NAME}-$(echo $GITHUB_SHA | cut -c1-7)"
