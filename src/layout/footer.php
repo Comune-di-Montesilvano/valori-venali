@@ -10,10 +10,13 @@
         — Valori Venali Aree Fabbricabili
       </div>
       <div class="col-md-6 text-md-end mt-2 mt-md-0">
-        Valori OMI &copy; Agenzia delle Entrate
+        <a href="<?= GITHUB_URL ?>" target="_blank" class="text-white text-decoration-none opacity-75">
+          <?= htmlspecialchars(COMUNE_NOME) ?> — Valori OMI
+        </a>
         &nbsp;
-        <a href="<?= GITHUB_URL ?>" target="_blank" class="text-decoration-none">
-          <span class="version-badge">v<?= APP_VERSION ?></span>
+        <a href="<?= GITHUB_URL ?>/releases/tag/<?= str_starts_with(APP_VERSION, 'v') ? APP_VERSION : 'v' . APP_VERSION ?>" 
+           target="_blank" class="text-decoration-none">
+          <span class="version-badge"><?= str_starts_with(APP_VERSION, 'v') ? APP_VERSION : 'v' . APP_VERSION ?></span>
         </a>
       </div>
     </div>
