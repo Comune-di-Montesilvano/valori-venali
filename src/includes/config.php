@@ -15,8 +15,15 @@ define('APP_SECRET', getenv('APP_SECRET') ?: 'default_insecure_secret_change_me'
 define('COMUNE_NOME',      getenv('COMUNE_NOME')      ?: 'Comune');
 define('COMUNE_PROVINCIA', getenv('COMUNE_PROVINCIA') ?: '');
 
-// Versione app
-define('APP_VERSION', getenv('APP_VERSION') ?: '2.2.3');
+// Versione app — Usa il valore dell'ambiente (Docker/CI) solo se è un tag di versione (es. v2.1.0 o 2.1.0)
+// Altrimenti usa la versione hardcoded nel file per le release.
+$hardcodedVersion = '2.2.3';
+$envVersion = getenv('APP_VERSION');
+if ($envVersion && preg_match('/^v?\d+\.\d+/', $envVersion)) {
+    define('APP_VERSION', $envVersion);
+} else {
+    define('APP_VERSION', $hardcodedVersion);
+}
 define('GITHUB_URL',  'https://github.com/mirkochipdotcom/valori-venali');
 
 // SEO
