@@ -58,7 +58,11 @@ jobs:
             VERSION="${BRANCH_NAME}-$(echo $GITHUB_SHA | cut -c1-7)"
             REVISION=${GITHUB_SHA}
             IS_TAG="false"
-            LATEST_TAG=""
+            if [[ "$BRANCH_NAME" == "master" ]]; then
+              LATEST_TAG="ghcr.io/$IMAGE_OWNER/valori-venali:latest"
+            else
+              LATEST_TAG=""
+            fi
           fi
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
           echo "APP_REVISION=$REVISION" >> $GITHUB_ENV
