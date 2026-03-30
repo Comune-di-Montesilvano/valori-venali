@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
         $headerLine = fgets($handle);
         $parti      = explode('-', $headerLine);
         $Periodo    = isset($parti[1]) ? trim($parti[1]) : 'Sconosciuto';
-        if (isset($parti[2])) {
+        if (isset($parti[2]) && !str_starts_with(trim(strtolower($parti[2])), 'elaborazione')) {
             $Periodo = trim($parti[1]) . '-' . trim($parti[2]);
         }
         $Periodo = trim($Periodo);

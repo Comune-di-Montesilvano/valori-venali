@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     # Development: build local custom DB image that embeds initdb scripts
