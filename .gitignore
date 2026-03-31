@@ -17,6 +17,3 @@ Thumbs.db
 .idea/
 *.swp
 uploads/
-
-# Docker override locale
-# Docker override locale
