@@ -24,7 +24,7 @@ if (!$foglio) {
 $foglio_row = DB::queryOne('SELECT zona_omi FROM fogli_zone_omi WHERE foglio_catastale = ?', [$foglio]);
 
 if (!$foglio_row) {
-    echo json_encode(0);
+    echo json_encode(['error' => 'Foglio non trovato', 'foglio' => $foglio]);
     exit;
 }
 
@@ -36,6 +36,11 @@ $id_abbattimento = Settings::get('OMI_ID_COEFFICIENTE_ABBATTIMENTO', 1);
 
 // 3. Trova destinazione urbanistica
 $dati_destinazione = DB::queryOne('SELECT * FROM omi_destinazione_urbanistica WHERE id_destinazione = ?', [$id_destinazione]);
+
+if (!$dati_destinazione) {
+    // Fallback: se in settings l'ID configurato non esiste, proviamo a prendere la prima destinazione disponibile
+    $dati_destinazione = DB::queryOne('SELECT * FROM omi_destinazione_urbanistica ORDER BY id_destinazione ASC LIMIT 1');
+}
 
 if (!$dati_destinazione) {
     $coefficiente_destinazione = 1;
@@ -54,6 +59,14 @@ $dati_omi = DB::queryOne(
     'SELECT * FROM valori_omi WHERE Zona = ? AND Cod_Tip = ? AND Stato = ? ORDER BY Periodo DESC LIMIT 1',
     [$zona_omi, $cod_tip, $stato]
 );
+
+// Fallback: se la combo Cod_Tip + Stato originaria del setting (o del primo ID) non esiste in questa zona, prendiamo il primo valore omi normale della zona
+if (!$dati_omi) {
+    $dati_omi = DB::queryOne(
+        'SELECT * FROM valori_omi WHERE Zona = ? ORDER BY Periodo DESC, Compr_max DESC LIMIT 1',
+        [$zona_omi]
+    );
+}
 
 if (!$dati_omi) {
     echo json_encode(0);
