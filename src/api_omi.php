@@ -30,9 +30,9 @@ if (!$foglio_row) {
 
 $zona_omi = $foglio_row['zona_omi'];
 
-// 2. Parametri globali da database (con fallback a 1 se non presenti)
-$id_destinazione = Settings::get('OMI_ID_COFFICIENTE_DESTINAZIONE', 1);
-$id_abbattimento = Settings::get('OMI_ID_COEFFICIENTE_ABBATTIMENTO', 1);
+// 2. Parametri (lettura da URL se passati esplicitamente, altrimenti fallback ai valori globali da database o default)
+$id_destinazione = isset($_GET['id_destinazione']) ? (int)$_GET['id_destinazione'] : Settings::get('OMI_ID_COFFICIENTE_DESTINAZIONE', 1);
+$id_abbattimento = isset($_GET['id_abbattimento']) ? (int)$_GET['id_abbattimento'] : Settings::get('OMI_ID_COEFFICIENTE_ABBATTIMENTO', 1);
 
 // 3. Trova destinazione urbanistica
 $dati_destinazione = DB::queryOne('SELECT * FROM omi_destinazione_urbanistica WHERE id_destinazione = ?', [$id_destinazione]);
@@ -104,7 +104,14 @@ $valore_finale = round($valore * 0.2 * $coefficiente_destinazione * $coefficient
 $valore_riscatto = round($valore * 0.2 * $coefficiente_destinazione * $coefficiente_abbattimento * $abbattimento * $riduzione, 2);
 
 echo json_encode([
-    "PERIODO"         => $dati_omi["Periodo"],
-    "VALORE"          => $valore_finale,
-    "VALORE_RISCATTO" => $valore_riscatto
+    "PERIODO"                     => $dati_omi["Periodo"],
+    "VALORE"                      => $valore_finale,
+    "VALORE_RISCATTO"             => $valore_riscatto,
+    // --- Campi extra di dettaglio qualora all'applicativo servissero altre informazioni ---
+    "ZONA_OMI"                    => $zona_omi,
+    "VALORE_BASE_OMI"             => $valore,
+    "COEFFICIENTE_DESTINAZIONE"   => $coefficiente_destinazione,
+    "COEFFICIENTE_ABBATTIMENTO"   => $coefficiente_abbattimento,
+    "MOLTIPLICATORE_ABBATTIMENTO" => $abbattimento,
+    "MOLTIPLICATORE_RIDUZIONE"    => $riduzione
 ]);
