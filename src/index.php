@@ -24,7 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
     $foglio          = trim($_POST['foglio_catastale'] ?? '');
     $destinazione    = trim($_POST['destinazione'] ?? '');
     $superficie      = (float) str_replace(',', '.', $_POST['superficie'] ?? '0');
-    $id_abbattimento = (int) ($_POST['id_abbattimento'] ?? 0);
+    $id_abbattimento = isset($_POST['id_abbattimento']) && $_POST['id_abbattimento'] !== ''
+      ? (int) $_POST['id_abbattimento']
+      : null;
     $periodo         = trim($_POST['periodo'] ?? '');
 
     if ($superficie <= 0) {
@@ -67,11 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
             }
         }
 
-        // Trova coefficiente abbattimento
-        $abb_row = DB::queryOne(
+        // Trova coefficiente abbattimento solo se selezionato, altrimenti usa valore neutro
+        $abb_row = null;
+        if ($id_abbattimento !== null) {
+          $abb_row = DB::queryOne(
             'SELECT descrizione, valore FROM omi_abbattimenti WHERE id_coefficiente = ? LIMIT 1',
             [$id_abbattimento]
-        );
+          );
+        }
 
         if (!$foglio_row) {
             $erroreCalcolo = "Nessuna zona OMI associata al foglio catastale \"$foglio\".";
@@ -79,13 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
             $erroreCalcolo = "Destinazione urbanistica non configurata.";
         } elseif ($valore_omi === null) {
             $erroreCalcolo = "Nessun valore OMI trovato per la combinazione selezionata nel periodo $periodo.";
-        } elseif (!$abb_row) {
-            $erroreCalcolo = "Coefficiente di abbattimento non trovato.";
         } else {
             $oneri_adattamento_check = isset($_POST['oneri_adattamento']);
             
             $coeff_dest = (float) $dest_row['coefficiente_destinazione'];
-            $coeff_abb  = (float) $abb_row['valore'];
+          $coeff_abb  = $abb_row ? (float) $abb_row['valore'] : 1.0;
             
             // Logica Montesilvano: VMR è il 20% del valore OMI
             $vmr = $valore_omi * 0.2;
@@ -113,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
                 'vmr'                => $vmr,
                 'coeff_dest'         => $coeff_dest,
                 'coeff_abb'          => $coeff_abb,
-                'desc_abb'           => $abb_row['descrizione'],
+                'desc_abb'           => $abb_row['descrizione'] ?? 'Non selezionato',
                 'oneri_adattamento'  => $oneri_adattamento_check,
                 'sconto_oneri'       => $sconto_oneri,
                 'valore_unitario'    => $valore_unitario,
@@ -163,7 +166,7 @@ include __DIR__ . '/layout/header.php';
     <div class="col-lg-8">
       <h2 class="fw-bold mb-2">📐 Stima Valori Venali Aree Fabbricabili</h2>
       <p class="mb-0 opacity-75 fs-5">
-        Calcolo basato sui valori OMI dell'Agenzia delle Entrate con applicazione dei coefficienti di destinazione urbanistica e stato conservativo.
+        Calcolo basato sui valori OMI dell'Agenzia delle Entrate con applicazione dei coefficienti di destinazione urbanistica e, se selezionato, dello stato conservativo.
       </p>
     </div>
     <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
@@ -245,9 +248,9 @@ include __DIR__ . '/layout/header.php';
           </div>
 
           <div class="mb-3">
-            <label for="id_abbattimento" class="form-label fw-semibold">Stato Conservativo <span class="text-danger">*</span></label>
-            <select class="form-select" id="id_abbattimento" name="id_abbattimento" required>
-              <option value="">— Seleziona stato —</option>
+            <label for="id_abbattimento" class="form-label fw-semibold">Stato Conservativo (opzionale)</label>
+            <select class="form-select" id="id_abbattimento" name="id_abbattimento">
+              <option value="">— Non selezionato —</option>
               <?php foreach ($abbattimenti as $a): ?>
                 <option value="<?= (int)$a['id_coefficiente'] ?>"
                   <?= (($_POST['id_abbattimento'] ?? '') == $a['id_coefficiente']) ? 'selected' : '' ?>>
@@ -256,6 +259,7 @@ include __DIR__ . '/layout/header.php';
                 </option>
               <?php endforeach; ?>
             </select>
+            <div class="form-text">Se non selezionato, viene applicato coefficiente neutro 1,00</div>
           </div>
 
           <div class="mb-4">
@@ -362,7 +366,7 @@ include __DIR__ . '/layout/header.php';
                 <td class="fw-semibold text-end"><?= number_format($risultato['coeff_dest'], 4, ',', '.') ?></td>
               </tr>
               <tr>
-                <td class="text-muted ps-3">Stato conservativo (CA)</td>
+                <td class="text-muted ps-3">Stato conservativo (CA, opzionale)</td>
                 <td class="fw-semibold text-end">
                     <?= htmlspecialchars($risultato['desc_abb']) ?><br>
                     <span class="small text-muted">× <?= number_format($risultato['coeff_abb'], 2, ',', '.') ?></span>
@@ -403,7 +407,7 @@ include __DIR__ . '/layout/header.php';
           <h4 class="h5 fw-bold mb-3">Come funziona il calcolo</h4>
           <p class="text-muted">La stima viene calcolata applicando la formula OMI:</p>
           <div class="p-3 rounded-3 mb-3" style="background:#f0f5ff; font-family:'Roboto Mono',monospace; font-size:.9rem;">
-            Valore Venale = Superficie × Valore OMI × Coeff. Destinazione × Coeff. Abbattimento
+            Valore Venale = Superficie × Valore OMI × Coeff. Destinazione × (Coeff. Abbattimento se selezionato)
           </div>
           <div class="row g-3 mt-2">
             <div class="col-sm-6">
@@ -427,7 +431,7 @@ include __DIR__ . '/layout/header.php';
             <div class="col-sm-6">
               <div class="d-flex gap-2 align-items-start">
                 <span class="badge bg-primary rounded-circle p-2">4</span>
-                <div><strong>Stato Conservativo</strong><br><small class="text-muted">Coefficiente abbattimento per stato</small></div>
+                <div><strong>Stato Conservativo (opzionale)</strong><br><small class="text-muted">Se non indicato, viene applicato coefficiente 1,00</small></div>
               </div>
             </div>
           </div>
