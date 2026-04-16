@@ -186,7 +186,7 @@ include __DIR__ . '/layout/header.php';
     <div>
       <h5 class="mb-1">Nessun dato OMI disponibile</h5>
       <p class="mb-0">Il database non contiene ancora valori OMI. Un amministratore deve caricare i dati tramite l'area riservata.</p>
-      <a href="<?= APP_URL ?>/admin/login.php" class="btn btn-sm btn-warning mt-2">Accedi all'area admin</a>
+      <a href="<?= APP_URL ?>/admin/login.php" class="btn btn-sm btn-warning mt-2 d-none" data-admin-login-link>Accedi all'area admin</a>
     </div>
   </div>
 <?php else: ?>
