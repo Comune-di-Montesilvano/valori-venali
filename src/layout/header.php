@@ -276,13 +276,37 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
           <a class="nav-link" href="<?= APP_URL ?>/admin/logout.php">🚪 Esci</a>
         </li>
       <?php else: ?>
-        <li class="nav-item ms-auto">
+        <li class="nav-item ms-auto d-none" data-admin-login-link>
           <a class="nav-link" href="<?= APP_URL ?>/admin/login.php">🔐 Admin</a>
         </li>
       <?php endif; ?>
     </ul>
   </div>
 </nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const adminLinks = document.querySelectorAll('[data-admin-login-link]');
+    if (!adminLinks.length) return;
+
+    fetch('<?= APP_URL ?>/admin/login.php', {
+      method: 'GET',
+      credentials: 'same-origin',
+      redirect: 'manual'
+    })
+      .then(function (response) {
+        // 401 indica comunque che il percorso è raggiungibile da questa rete.
+        const reachable = (response.status >= 200 && response.status < 400) || response.status === 401;
+        if (!reachable) return;
+        adminLinks.forEach(function (el) {
+          el.classList.remove('d-none');
+        });
+      })
+      .catch(function () {
+        // Se la rotta non è raggiungibile da questa rete, il link resta nascosto.
+      });
+  });
+</script>
 
 <!-- ── Page Content ── -->
 <main class="page-content">
