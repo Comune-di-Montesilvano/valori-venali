@@ -292,10 +292,11 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
     fetch('<?= APP_URL ?>/admin/login.php', {
       method: 'GET',
       credentials: 'same-origin',
-      redirect: 'follow'
+      redirect: 'manual'
     })
       .then(function (response) {
-        const reachable = response.ok || [301, 302, 303, 307, 308, 401].includes(response.status);
+        // 401 indica comunque che il percorso è raggiungibile da questa rete.
+        const reachable = (response.status >= 200 && response.status < 400) || response.status === 401;
         if (!reachable) return;
         adminLinks.forEach(function (el) {
           el.classList.remove('d-none');
