@@ -1,0 +1,72 @@
+publiccodeYmlVersion: "0.2"
+
+name: Valori Venali Aree Fabbricabili
+url: "https://github.com/Comune-di-Montesilvano/valori-venali"
+softwareVersion: "1.0.0"
+releaseDate: "2025-01-01"
+platforms:
+  - web
+categories:
+  - financial-reporting
+  - property-management
+developmentStatus: stable
+softwareType: "standalone/web"
+
+description:
+  it:
+    localisedName: "Valori Venali Aree Fabbricabili"
+    shortDescription: >
+      Applicativo web per il calcolo dei valori venali delle aree
+      fabbricabili basato sui dati OMI dell'Agenzia delle Entrate.
+    longDescription: >
+      Applicativo web per il calcolo della Stima dei Valori Venali delle
+      Aree Fabbricabili, sviluppato dal Comune di Montesilvano e destinato
+      agli enti locali italiani. Il software si basa sui valori OMI
+      (Osservatorio del Mercato Immobiliare) dell'Agenzia delle Entrate
+      e consente di determinare il valore venale delle aree edificabili
+      ai fini ICI/IMU secondo quanto previsto dal D.L. 504/1992.
+      Comprende un'area amministrativa per l'importazione dei dati OMI
+      tramite file CSV dal Portale Sister e la gestione dei coefficienti
+      di destinazione e abbattimento, nonché un'interfaccia pubblica per
+      il calcolo della stima. Il deployment è gestito tramite Docker
+      Compose con immagini pubblicate su GitHub Container Registry.
+    features:
+      - Calcolo della stima dei valori venali delle aree fabbricabili
+      - Importazione dati OMI da CSV (Portale Sister, Agenzia delle Entrate)
+      - Gestione coefficienti di destinazione e abbattimento
+      - Area amministrativa protetta da autenticazione
+      - Interfaccia pubblica per il calcolo della stima
+      - Deploy containerizzato tramite Docker Compose
+      - Conforme alla formula D.L. 504/1992
+
+legal:
+  license: EUPL-1.2
+  mainCopyrightOwner: Comune di Montesilvano
+  repoOwner: Comune di Montesilvano
+
+maintenance:
+  type: internal
+  contacts:
+    - name: Settore Informatica - Comune di Montesilvano
+      affiliation: Comune di Montesilvano
+
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - it
+
+it:
+  countryExtensionVersion: "1.0"
+  conforme:
+    lineeGuidaDesign: true
+    modelloInteroperabilita: false
+    misureMinimeSicurezza: false
+    gdpr: false
+  piattaforme:
+    spid: false
+    pagopa: false
+    cie: false
+    anpr: false
+    io: false
+  riuso:
+    codiceIPA: c_f646
