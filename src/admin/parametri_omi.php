@@ -97,6 +97,7 @@ include __DIR__ . '/../layout/header.php';
       <table class="table table-hover align-middle mb-0">
         <thead>
           <tr>
+            <th class="text-center" style="width:90px">ID</th>
             <th class="ps-3">Zona PRG</th>
             <th>Tipologia OMI</th>
             <th class="text-center">Stato</th>
@@ -108,6 +109,7 @@ include __DIR__ . '/../layout/header.php';
         <tbody>
           <?php foreach ($destinazioni as $d): ?>
           <tr>
+            <td class="text-center"><code><?= (int) $d['id_destinazione'] ?></code></td>
             <td class="ps-3 fw-bold"><?= htmlspecialchars($d['destinazione']) ?></td>
             <td><small><?= htmlspecialchars($desc_tip[$d['Cod_Tip']] ?? $d['Cod_Tip']) ?></small></td>
             <td class="text-center">

@@ -13,10 +13,16 @@ header('Access-Control-Allow-Methods: GET');
 header('Content-Type: application/json; charset=utf-8');
 
 $foglio = isset($_GET['foglio']) ? trim($_GET['foglio']) : null;
+$destinazione_param = isset($_GET['destinazione']) ? trim($_GET['destinazione']) : null;
 
 if (!$foglio) {
     http_response_code(400);
     echo json_encode(['error' => 'Parametro foglio mancante. Esempio: ?foglio=10']);
+    exit;
+}
+
+if (!$destinazione_param && !isset($_GET['id_destinazione'])) {
+    echo json_encode(['error' => 'Parametro destinazione mancante. Esempio: ?foglio=10&destinazione=B1']);
     exit;
 }
 
@@ -31,28 +37,27 @@ if (!$foglio_row) {
 $zona_omi = $foglio_row['zona_omi'];
 
 // 2. Parametri (lettura da URL se passati esplicitamente, altrimenti fallback ai valori globali da database o default)
-$id_destinazione = isset($_GET['id_destinazione']) ? (int)$_GET['id_destinazione'] : Settings::get('OMI_ID_COFFICIENTE_DESTINAZIONE', 1);
+$id_destinazione = isset($_GET['id_destinazione']) ? (int)$_GET['id_destinazione'] : null;
 $id_abbattimento = isset($_GET['id_abbattimento']) ? (int)$_GET['id_abbattimento'] : Settings::get('OMI_ID_COEFFICIENTE_ABBATTIMENTO', 1);
 
 // 3. Trova destinazione urbanistica
-$dati_destinazione = DB::queryOne('SELECT * FROM omi_destinazione_urbanistica WHERE id_destinazione = ?', [$id_destinazione]);
-
-if (!$dati_destinazione) {
-    // Fallback: se in settings l'ID configurato non esiste, proviamo a prendere la prima destinazione disponibile
-    $dati_destinazione = DB::queryOne('SELECT * FROM omi_destinazione_urbanistica ORDER BY id_destinazione ASC LIMIT 1');
-}
-
-if (!$dati_destinazione) {
-    $coefficiente_destinazione = 1;
-    $tipo_valore               = 2;
-    $cod_tip                   = '';
-    $stato                     = '';
+if ($destinazione_param) {
+    $dati_destinazione = DB::queryOne('SELECT * FROM omi_destinazione_urbanistica WHERE destinazione = ?', [$destinazione_param]);
 } else {
-    $coefficiente_destinazione = (float) $dati_destinazione['coefficiente_destinazione'];
-    $tipo_valore               = (int) $dati_destinazione['Valore'];
-    $cod_tip                   = $dati_destinazione['Cod_Tip'];
-    $stato                     = $dati_destinazione['Stato'];
+    $dati_destinazione = $id_destinazione !== null
+        ? DB::queryOne('SELECT * FROM omi_destinazione_urbanistica WHERE id_destinazione = ?', [$id_destinazione])
+        : null;
 }
+
+if (!$dati_destinazione) {
+    echo json_encode(['error' => 'Destinazione urbanistica non trovata', 'destinazione' => $destinazione_param]);
+    exit;
+}
+
+$coefficiente_destinazione = (float) $dati_destinazione['coefficiente_destinazione'];
+$tipo_valore               = (int) $dati_destinazione['Valore'];
+$cod_tip                   = $dati_destinazione['Cod_Tip'];
+$stato                     = $dati_destinazione['Stato'];
 
 // 4. Trova i dati OMI filtrando per zona, tipologia e stato
 $dati_omi = DB::queryOne(
@@ -109,6 +114,7 @@ echo json_encode([
     "VALORE_RISCATTO"             => $valore_riscatto,
     // --- Campi extra di dettaglio qualora all'applicativo servissero altre informazioni ---
     "ZONA_OMI"                    => $zona_omi,
+    "DESTINAZIONE_URBANISTICA"    => $dati_destinazione['destinazione'] ?? '',
     "VALORE_BASE_OMI"             => $valore,
     "COEFFICIENTE_DESTINAZIONE"   => $coefficiente_destinazione,
     "COEFFICIENTE_ABBATTIMENTO"   => $coefficiente_abbattimento,
