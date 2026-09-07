@@ -70,11 +70,22 @@ jobs:
           echo "IMAGE_OWNER=$IMAGE_OWNER" >> $GITHUB_ENV
 
           # Determine version and revision (for links)
+          # Su pull_request GITHUB_REF è "refs/pull/N/merge" — lo strip
+          # refs/heads/ non matcha e lascia gli slash nel nome, tag Docker
+          # invalido ("invalid reference format"). GITHUB_HEAD_REF (settata
+          # solo su pull_request) dà il vero nome branch, sanificato di
+          # eventuali "/" residui (branch tipo "feature/x").
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
             REVISION=${GITHUB_REF#refs/tags/}
             IS_TAG="true"
             LATEST_TAG="ghcr.io/$IMAGE_OWNER/valori-venali:latest"
+          elif [[ -n "$GITHUB_HEAD_REF" ]]; then
+            BRANCH_NAME=$(echo "$GITHUB_HEAD_REF" | tr '/' '-')
+            VERSION="${BRANCH_NAME}-$(echo $GITHUB_SHA | cut -c1-7)"
+            REVISION=${GITHUB_SHA}
+            IS_TAG="false"
+            LATEST_TAG=""
           else
             BRANCH_NAME=${GITHUB_REF#refs/heads/}
             VERSION="${BRANCH_NAME}-$(echo $GITHUB_SHA | cut -c1-7)"
