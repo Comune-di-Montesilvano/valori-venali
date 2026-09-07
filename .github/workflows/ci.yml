@@ -11,17 +11,21 @@ on:
   pull_request:
     branches: [ "master" ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
     name: PHP Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
           php-version: '8.2'
 
@@ -32,12 +36,30 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      # Scan del Dockerfile/config — bloccante, gira anche sulle PR senza
+      # bisogno di aver già buildato/pushato nulla.
+      - name: Trivy config scan (Dockerfile)
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        with:
+          version: latest # il binario Trivy pinnato di default da questa release dell'action (0.69.1) non installa
+          scan-type: config
+          scan-ref: docker/php/Dockerfile
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          trivyignores: ${{ github.workspace }}/.trivyignore
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
       - name: Set lowercase image owner
         env:
           OWNER: ${{ github.repository_owner }}
@@ -70,21 +92,24 @@ jobs:
           echo "GITHUB_URL=https://github.com/${{ github.repository }}" >> $GITHUB_ENV
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
-
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        # Mai su pull_request: un token di una PR (anche interna) non deve
+        # pubblicare immagini su GHCR — solo push reali a master/tag.
+        if: github.event_name == 'push'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image to GHCR
-        uses: docker/build-push-action@v6
+      - name: Build (and push on real push events only)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           # build context is repository root so Dockerfile can COPY src/
           context: .
           file: docker/php/Dockerfile
-          push: true
+          push: ${{ github.event_name == 'push' }}
+          load: ${{ github.event_name == 'pull_request' }}
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
             APP_REVISION=${{ env.APP_REVISION }}
@@ -95,3 +120,22 @@ jobs:
             ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:${{ env.APP_VERSION }}
             ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:${{ github.sha }}
 
+      # Scan dell'immagine pubblicata — solo sui push reali (l'immagine da PR
+      # resta locale via `load`, non c'è nulla da scansionare nel registry).
+      - name: Trivy image scan
+        if: github.event_name == 'push'
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        with:
+          version: latest
+          image-ref: ghcr.io/${{ env.IMAGE_OWNER }}/valori-venali:${{ env.APP_VERSION }}
+          format: sarif
+          output: trivy-image.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Upload Trivy results to Security tab
+        if: github.event_name == 'push'
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          sarif_file: trivy-image.sarif
