@@ -1,2 +1,11 @@
 # Trivy ignore list — solo falsi positivi verificati, mai CVE reali ignorate alla cieca.
 # Rivalutare quando la causa sottostante cambia (nuova versione dipendenza/immagine base).
+
+# DS-0002 (nessun USER non-root nel Dockerfile): falso positivo verificato.
+# Base image php:8.2-apache — il processo master Apache gira sempre come
+# root per design (bind sulla porta privilegiata, gestione dei worker), i
+# worker che processano richieste reali girano come www-data via
+# APACHE_RUN_USER/APACHE_RUN_GROUP già impostati nell'immagine ufficiale
+# (envvars + apache2-foreground). Nessun processo applicativo gira
+# realmente come root. Stesso pattern già verificato su GovPay-Interaction-Layer.
+DS-0002
