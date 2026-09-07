@@ -1,0 +1,41 @@
+# .github/workflows/publiccode-validate.yml
+#
+# Valida publiccode.yml contro lo standard italia/publiccode.yml a ogni
+# modifica del file — richiesto per l'onboarding del software nel catalogo
+# developers.italia.it (art. 69 CAD). Il parser ufficiale (Go, stesso motore
+# usato dal crawler AGID) segnala errori di sintassi/semantica prima che
+# arrivino in produzione, con commenti inline sulla PR.
+name: publiccode.yml validation
+
+on:
+  push:
+    branches: [master]
+    paths: [publiccode.yml]
+  pull_request:
+    paths: [publiccode.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: publiccode-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publiccode_yml_validation:
+    runs-on: ubuntu-latest
+    name: publiccode.yml validation
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Validate publiccode.yml
+        uses: italia/publiccode-parser-action@0deab88c3f094aa12c5826e52ac2c4f176446821 # v1
+        with:
+          publiccode: publiccode.yml
+          comment-on-pr: ${{ github.event_name == 'pull_request' }}
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
