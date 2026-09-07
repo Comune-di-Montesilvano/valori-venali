@@ -133,6 +133,12 @@ Lo schema DB è incluso nell'immagine `db` (non serve bind mount su `initdb/`).
 
 Richiede `packages: write` per il push sul registry.
 
+**Baseline sicurezza (dal 2026-09-07)**: `ci.yml` scansiona con Trivy il Dockerfile (`scan-type: config`, bloccante, gira su ogni PR — `.trivyignore` a root, `DS-0002` ignorato con giustificazione: base `php:8.2-apache` gira il master come root by design, i worker reali sono `www-data` via `APACHE_RUN_USER` interno) e l'immagine pubblicata dopo un push reale (report-only, SARIF su tab Security). Tutte le Action pinnate per commit SHA. `dependabot.yml` nuovo — ecosistemi `docker` (`/docker/php`) + `github-actions`, cooldown 7gg/14gg. `master` è protetto: required check `PHP Lint`+`Docker Build Test` (mai `publiccode.yml validation`, path-filtered — bloccherebbe le PR che non toccano quel file), no force-push, no delete.
+
+**`docker-build` pushava su GHCR anche dalle pull_request** (login+push incondizionati) — fix: `push`/login condizionati a `github.event_name == 'push'`, sulla PR l'immagine resta locale (`load: true`). Nel farlo, emerso un secondo bug pre-esistente mai osservato: su `pull_request` `GITHUB_REF` è `refs/pull/N/merge`, non `refs/heads/*` — lo strip prefisso lasciava lo slash nel tag Docker (`invalid reference format`). Fix: su `pull_request` usa `GITHUB_HEAD_REF` (settata solo in quel contesto) per il nome branch, sanificata (`tr '/' '-'`).
+
+**`aquasecurity/trivy-action` — serve `version: latest` esplicito**, il binario Trivy pinnato di default da alcune release dell'action non installa (stesso gotcha già preso su ComunicaPA/ProntoPA).
+
 ## Versione
 
 Attuale: **2.1.0** — vedere `src/layout/footer.php` per il badge versione.
