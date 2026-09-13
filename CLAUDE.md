@@ -140,6 +140,8 @@ Richiede `packages: write` per il push sul registry (in `release.yml`).
 
 **Baseline sicurezza**: Trivy fs/config bloccante + image scan report-only, tutte le Action pinnate per commit SHA, `dependabot.yml` — ecosistemi `docker` (`/docker/php`) + `github-actions`, cooldown 7gg/14gg. `master` è protetto: required check `PHP Lint`+`Docker Build Test` (nomi job invariati dallo split, branch protection non toccata; mai `publiccode.yml validation`, path-filtered — bloccherebbe le PR che non toccano quel file), no force-push, no delete.
 
+**Dependabot ha 2 switch indipendenti**: `dependabot.yml` (version updates, file-based) e "security updates" automatiche (repo setting, non nel file — verifica/attiva con `gh api repos/<owner>/valori-venali/vulnerability-alerts` [204=on] e `gh api -X PUT repos/<owner>/valori-venali/automated-security-fixes`). Il file presente non implica il secondo attivo.
+
 **Storico bug (nel vecchio `ci.yml`, principio ancora valido)**: `docker-build` pushava su GHCR anche dalle pull_request (login+push incondizionati) — fix: `push`/login condizionati a `github.event_name == 'push'` (ora superato: in `test.yml` il push è sempre `false`, in `release.yml` sempre `true` perché gira solo su tag/dispatch). Bug correlato: su `pull_request` `GITHUB_REF` è `refs/pull/N/merge`, non `refs/heads/*` — lo strip prefisso lasciava lo slash nel tag Docker (`invalid reference format`); da tenere a mente se si reintroduce logica branch-based.
 
 **`aquasecurity/trivy-action` — serve `version: latest` esplicito**, il binario Trivy pinnato di default da alcune release dell'action non installa (stesso gotcha già preso su ComunicaPA/ProntoPA).
