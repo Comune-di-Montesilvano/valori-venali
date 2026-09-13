@@ -15,5 +15,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+.serena/
 *.swp
 uploads/
