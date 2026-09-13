@@ -127,15 +127,22 @@ Lo schema DB è incluso nell'immagine `db` (non serve bind mount su `initdb/`).
 
 ## CI/CD
 
-`.github/workflows/ci.yml` esegue su push/PR a `master`:
-1. **PHP Lint** — syntax check su tutti i `src/*.php`
-2. **Build & Push GHCR** — pubblica `ghcr.io/<owner>/valori-venali:latest` e il tag SHA
+**Dal 2026-09-13, split in due workflow** (pattern standard riusato tra i progetti, rif. canonico `gopulley`), sostituendo il precedente `ci.yml` monolitico:
 
-Richiede `packages: write` per il push sul registry.
+- **`.github/workflows/test.yml`** — push/PR a `master`:
+  1. **PHP Lint** — syntax check su tutti i `src/*.php`
+  2. **Docker Build Test** — Trivy config scan del Dockerfile (`scan-type: config`, bloccante, gira su ogni PR — `.trivyignore` a root, `DS-0002` ignorato con giustificazione: base `php:8.2-apache` gira il master come root by design, i worker reali sono `www-data` via `APACHE_RUN_USER` interno) + build immagine **senza push** (`push: false, load: true`) solo per verificare che compili.
+- **`.github/workflows/release.yml`** — **solo** su tag `v*` push + `workflow_dispatch` (input `tag`): build e push su `ghcr.io/<owner>/valori-venali` (tag versione + `latest` + SHA), poi Trivy image scan sull'immagine pubblicata (report-only, SARIF su tab Security).
 
-**Baseline sicurezza (dal 2026-09-07)**: `ci.yml` scansiona con Trivy il Dockerfile (`scan-type: config`, bloccante, gira su ogni PR — `.trivyignore` a root, `DS-0002` ignorato con giustificazione: base `php:8.2-apache` gira il master come root by design, i worker reali sono `www-data` via `APACHE_RUN_USER` interno) e l'immagine pubblicata dopo un push reale (report-only, SARIF su tab Security). Tutte le Action pinnate per commit SHA. `dependabot.yml` nuovo — ecosistemi `docker` (`/docker/php`) + `github-actions`, cooldown 7gg/14gg. `master` è protetto: required check `PHP Lint`+`Docker Build Test` (mai `publiccode.yml validation`, path-filtered — bloccherebbe le PR che non toccano quel file), no force-push, no delete.
+**Comportamento cambiato**: prima ogni push a `master` pubblicava `:latest` su GHCR; ora **serve un tag `v*`** per pubblicare (pattern gopulley puro). I Comuni che fanno `docker compose pull` per aggiornare devono attendere un tag di release, non più ogni merge su master.
 
-**`docker-build` pushava su GHCR anche dalle pull_request** (login+push incondizionati) — fix: `push`/login condizionati a `github.event_name == 'push'`, sulla PR l'immagine resta locale (`load: true`). Nel farlo, emerso un secondo bug pre-esistente mai osservato: su `pull_request` `GITHUB_REF` è `refs/pull/N/merge`, non `refs/heads/*` — lo strip prefisso lasciava lo slash nel tag Docker (`invalid reference format`). Fix: su `pull_request` usa `GITHUB_HEAD_REF` (settata solo in quel contesto) per il nome branch, sanificata (`tr '/' '-'`).
+Richiede `packages: write` per il push sul registry (in `release.yml`).
+
+**Baseline sicurezza**: Trivy fs/config bloccante + image scan report-only, tutte le Action pinnate per commit SHA, `dependabot.yml` — ecosistemi `docker` (`/docker/php`) + `github-actions`, cooldown 7gg/14gg. `master` è protetto: required check `PHP Lint`+`Docker Build Test` (nomi job invariati dallo split, branch protection non toccata; mai `publiccode.yml validation`, path-filtered — bloccherebbe le PR che non toccano quel file), no force-push, no delete.
+
+**Dependabot ha 2 switch indipendenti**: `dependabot.yml` (version updates, file-based) e "security updates" automatiche (repo setting, non nel file — verifica/attiva con `gh api repos/<owner>/valori-venali/vulnerability-alerts` [204=on] e `gh api -X PUT repos/<owner>/valori-venali/automated-security-fixes`). Il file presente non implica il secondo attivo.
+
+**Storico bug (nel vecchio `ci.yml`, principio ancora valido)**: `docker-build` pushava su GHCR anche dalle pull_request (login+push incondizionati) — fix: `push`/login condizionati a `github.event_name == 'push'` (ora superato: in `test.yml` il push è sempre `false`, in `release.yml` sempre `true` perché gira solo su tag/dispatch). Bug correlato: su `pull_request` `GITHUB_REF` è `refs/pull/N/merge`, non `refs/heads/*` — lo strip prefisso lasciava lo slash nel tag Docker (`invalid reference format`); da tenere a mente se si reintroduce logica branch-based.
 
 **`aquasecurity/trivy-action` — serve `version: latest` esplicito**, il binario Trivy pinnato di default da alcune release dell'action non installa (stesso gotcha già preso su ComunicaPA/ProntoPA).
 
