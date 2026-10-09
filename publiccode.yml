@@ -1,4 +1,4 @@
-publiccodeYmlVersion: 0.5.0
+publiccodeYmlVersion: "0"
 name: Valori Venali Aree Fabbricabili
 url: https://github.com/Comune-di-Montesilvano/valori-venali
 landingURL: https://valorivenali.comune.montesilvano.pe.it/
@@ -50,7 +50,6 @@ description:
 legal:
   license: EUPL-1.2
   mainCopyrightOwner: Comune di Montesilvano
-  repoOwner: Comune di Montesilvano
 maintenance:
   type: internal
   contacts:
@@ -63,16 +62,9 @@ localisation:
     - it
 IT:
   countryExtensionVersion: "1.0"
-  conforme:
-    lineeGuidaDesign: true
-    modelloInteroperabilita: false
-    misureMinimeSicurezza: false
-    gdpr: false
   piattaforme:
     spid: false
     cie: false
     anpr: false
     pagopa: false
     io: false
-  riuso:
-    codiceIPA: c_f646
