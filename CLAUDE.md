@@ -138,7 +138,7 @@ Lo schema DB è incluso nell'immagine `db` (non serve bind mount su `initdb/`).
 
 Richiede `packages: write` per il push sul registry (in `release.yml`).
 
-**Baseline sicurezza**: Trivy fs/config bloccante + image scan report-only, tutte le Action pinnate per commit SHA, `dependabot.yml` — ecosistemi `docker` (`/docker/php`) + `github-actions`, cooldown 7gg/14gg. `master` è protetto: required check `PHP Lint`+`Docker Build Test` (nomi job invariati dallo split, branch protection non toccata; mai `publiccode.yml validation`, path-filtered — bloccherebbe le PR che non toccano quel file), no force-push, no delete.
+**Baseline sicurezza**: Trivy fs/config bloccante + image scan report-only, tutte le Action pinnate per commit SHA, `dependabot.yml` — ecosistemi `docker` (`/docker/php`) + `github-actions`, cooldown 7gg (`default-days` only: `semver-major-days` NON supportato per docker/github-actions — config invalido = Dependabot non parte mai, errore visibile solo su `/network/updates`). `master` è protetto: required check `PHP Lint`+`Docker Build Test` (nomi job invariati dallo split, branch protection non toccata; mai `publiccode.yml validation`, path-filtered — bloccherebbe le PR che non toccano quel file), no force-push, no delete.
 
 **Dependabot ha 2 switch indipendenti**: `dependabot.yml` (version updates, file-based) e "security updates" automatiche (repo setting, non nel file — verifica/attiva con `gh api repos/<owner>/valori-venali/vulnerability-alerts` [204=on] e `gh api -X PUT repos/<owner>/valori-venali/automated-security-fixes`). Il file presente non implica il secondo attivo.
 
