@@ -1,11 +1,11 @@
 # Asset frontend (Bootstrap Italia + font) — versioni in package.json,
 # aggiornate da Dependabot (ecosistema npm). Serviti dall'app, niente CDN.
-FROM node:24-alpine AS assets
+FROM node:26-alpine AS assets
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
-FROM php:8.4-apache
+FROM php:8.5-apache
 
 # Image metadata
 ARG APP_VERSION=dev

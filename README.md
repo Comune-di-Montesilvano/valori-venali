@@ -8,7 +8,7 @@ Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbri
 | Layer | Tecnologia |
 |-------|-----------|
 | Frontend | Bootstrap Italia v2 (self-hosted, nessun CDN) |
-| Backend | PHP 8.4 |
+| Backend | PHP 8.5 |
 | Web Server | Apache 2.4 |
 | Database | MariaDB 11 |
 | Container | Docker Compose |
@@ -68,7 +68,7 @@ docker compose up -d
 ├── .env                    # Segreti locali (gitignored)
 ├── .env.example            # Template
 ├── docker/
-│   ├── php/Dockerfile      # PHP 8.4 + Apache (pubblicato su GHCR)
+│   ├── php/Dockerfile      # PHP 8.5 + Apache (pubblicato su GHCR)
 │   └── db/Dockerfile       # MariaDB 11 con initdb embedded
 ├── initdb/01_schema.sql    # Schema + seed DB (copiato nell'immagine db)
 └── src/                    # Document root Apache

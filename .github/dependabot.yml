@@ -15,6 +15,9 @@ updates:
       day: monday
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major"]
 
   # MariaDB usata in produzione
   - package-ecosystem: docker-compose
@@ -24,6 +27,11 @@ updates:
       day: monday
     cooldown:
       default-days: 7
+    # MariaDB: restiamo sulla 11 (= 11.8 LTS, EOL 2030-02, più lunga della
+    # 12.3 LTS). Le major nuove sono spesso rolling: si valutano a mano.
+    ignore:
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major"]
 
   # Bootstrap Italia (asset self-hosted)
   - package-ecosystem: npm
