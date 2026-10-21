@@ -1,3 +1,10 @@
+# Asset frontend (Bootstrap Italia + font) — versioni in package.json,
+# aggiornate da Dependabot (ecosistema npm). Serviti dall'app, niente CDN.
+FROM node:24-alpine AS assets
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+
 FROM php:8.4-apache
 
 # Image metadata
@@ -12,6 +19,11 @@ ENV GITHUB_URL=$GITHUB_URL
 LABEL org.opencontainers.image.source=$GITHUB_URL
 LABEL org.opencontainers.image.maintainer="Comune-di-Montesilvano"
 
+# Patch di sicurezza Debian uscite dopo l'ultima build dell'immagine base
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Installa estensioni PHP necessarie
 RUN docker-php-ext-install pdo pdo_mysql
 
@@ -24,6 +36,18 @@ RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 # Imposta upload max size per CSV OMI
 RUN echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size = 25M"       >> /usr/local/etc/php/conf.d/uploads.ini
+
+# Asset fuori dal DocumentRoot (in sviluppo src/ è montato sopra /var/www/html)
+COPY --from=assets /build/node_modules/bootstrap-italia/dist/ /opt/assets/bootstrap-italia/
+RUN printf '%s\n' \
+      'Alias /assets/bootstrap-italia /opt/assets/bootstrap-italia' \
+      '<Directory /opt/assets/bootstrap-italia>' \
+      '    Options -Indexes' \
+      '    AllowOverride None' \
+      '    Require all granted' \
+      '</Directory>' \
+      > /etc/apache2/conf-available/assets.conf \
+    && a2enconf assets
 
 # Copia i sorgenti dell'app nell'immagine (build context: repository root)
 WORKDIR /var/www/html
