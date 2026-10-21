@@ -3,6 +3,6 @@
   "private": true,
   "description": "Asset frontend self-hosted (copiati nell'immagine dal Dockerfile). Versioni aggiornate da Dependabot.",
   "dependencies": {
-    "bootstrap-italia": "2.13.0"
+    "bootstrap-italia": "2.18.3"
   }
 }
