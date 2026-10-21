@@ -4,7 +4,7 @@ Strumento web per il calcolo dei valori venali delle aree fabbricabili, ad uso d
 
 ## Stack
 
-- **Backend:** PHP 8.4, Apache 2.4
+- **Backend:** PHP 8.5, Apache 2.4
 - **Database:** MariaDB 11 (custom image con initdb embedded)
 - **Frontend:** Bootstrap Italia (versione in `package.json`, **self-hosted**: installato via npm in uno stage del Dockerfile, servito da Apache su `/assets/bootstrap-italia` via `Alias` a `/opt/assets` — fuori dal DocumentRoot, così il bind mount di `src/` in dev non lo nasconde). Font locali via `window.__PUBLIC_PATH__` + `bootstrap.loadFonts()`. Nessun CDN/Google Fonts (GDPR: niente IP dei cittadini a terzi)
 - **Infra:** Docker Compose (named volumes, no bind mount)
@@ -116,7 +116,7 @@ Le variabili critiche da impostare per ogni Comune:
 | Servizio | Immagine | Note |
 |---------|---------|------|
 | `db` | Custom `docker/db/Dockerfile` | MariaDB 11 + `initdb/` embedded nell'immagine |
-| `app` | Custom `docker/php/Dockerfile` | PHP 8.4-Apache, pubblicata su GHCR |
+| `app` | Custom `docker/php/Dockerfile` | PHP 8.5-Apache, pubblicata su GHCR |
 
 **Volumi:**
 - `db_data` — dati MariaDB
@@ -130,8 +130,8 @@ Lo schema DB è incluso nell'immagine `db` (non serve bind mount su `initdb/`).
 **Dal 2026-09-13, split in due workflow** (pattern standard riusato tra i progetti, rif. canonico `gopulley`), sostituendo il precedente `ci.yml` monolitico:
 
 - **`.github/workflows/test.yml`** — push/PR a `master` + `workflow_dispatch`:
-  1. **PHP Lint** — syntax check su tutti i `src/*.php` (PHP 8.4)
-  2. **Docker Build Test** — Trivy config scan del Dockerfile (`scan-type: config`, bloccante — `.trivyignore` a root, `DS-0002` ignorato con giustificazione: base `php:8.4-apache` gira il master come root by design, i worker reali sono `www-data` via `APACHE_RUN_USER` interno) + build **senza push** (`pull: true`) + **smoke test** (`.github/scripts/smoke-test.sh`: MariaDB con `initdb/` + app, 200 su home/`admin/login.php`/asset/font, niente errori PHP nei log) + **Trivy image scan bloccante** (HIGH/CRITICAL con fix disponibile).
+  1. **PHP Lint** — syntax check su tutti i `src/*.php` (PHP 8.5)
+  2. **Docker Build Test** — Trivy config scan del Dockerfile (`scan-type: config`, bloccante — `.trivyignore` a root, `DS-0002` ignorato con giustificazione: base `php:8.5-apache` gira il master come root by design, i worker reali sono `www-data` via `APACHE_RUN_USER` interno) + build **senza push** (`pull: true`) + **smoke test** (`.github/scripts/smoke-test.sh`: MariaDB con `initdb/` + app, 200 su home/`admin/login.php`/asset/font, niente errori PHP nei log) + **Trivy image scan bloccante** (HIGH/CRITICAL con fix disponibile).
 - **`.github/workflows/release.yml`** — **solo** su tag `v*` push + `workflow_dispatch` (input `tag`): build e push su `ghcr.io/<owner>/valori-venali` (tag versione + `latest` + SHA), poi Trivy image scan (report-only, SARIF su tab Security). **I tag `v*` li crea solo l'umano.**
 - **`.github/workflows/publish-latest.yml`** — cron **martedì 06:00 UTC** + dispatch: rebuild `no-cache`/`pull` → smoke test → Trivy bloccante → push **solo** `:latest` + `:weekly-YYYYMMDD` (rollback). Mai tag `v*`. Sorgente **ibrida**: se dopo l'ultimo `v*` su master ci sono solo commit `dependabot[bot]` → build da master (`APP_VERSION=vX.Y.Z+deps.<sha>`); se c'è lavoro umano non rilasciato → build dall'ultimo tag (solo patch base). Lo script di smoke viene da master, i dati (initdb, compose) dalla sorgente; i check asset scattano solo se la sorgente ha `package.json` (tag ≤ v2.3.4 usano il CDN). Fallimento = mail "workflow failed" = intervento manuale.
 - **`.github/workflows/dependabot-automerge.yml`** — su PR Dependabot (`opened`/`reopened`): `dependabot/fetch-metadata` → patch/minor `gh pr merge --auto --squash` (merge appena passano i required check); major → nessun merge + commento, la PR aperta è la segnalazione. Richiede repo setting `allow_auto_merge: true`. L'auto-merge è abilitato col **token della GitHub App** (non `GITHUB_TOKEN`): un merge fatto da `GITHUB_TOKEN` non genera eventi `push` → il workflow sotto non partirebbe.
@@ -155,4 +155,4 @@ Richiede `packages: write` per il push sul registry (in `release.yml`).
 
 ## Versione
 
-Attuale: **2.3.4** (ultimo tag; il badge viene da `APP_VERSION` in build) — vedere `src/layout/footer.php` per il badge versione.
+Attuale: **2.4.0** (ultimo tag; il badge viene da `APP_VERSION` in build) — vedere `src/layout/footer.php` per il badge versione.

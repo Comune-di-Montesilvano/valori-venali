@@ -2,8 +2,8 @@ publiccodeYmlVersion: "0"
 name: Valori Venali Aree Fabbricabili
 url: https://github.com/Comune-di-Montesilvano/valori-venali
 landingURL: https://valorivenali.comune.montesilvano.pe.it/
-softwareVersion: 1.0.0
-releaseDate: 2026-04-01
+softwareVersion: 2.4.0
+releaseDate: 2026-10-21
 platforms:
   - web
 categories:

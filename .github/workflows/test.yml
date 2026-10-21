@@ -22,9 +22,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
-          php-version: '8.4'
+          php-version: '8.5'
 
       - name: Syntax check (Lint)
         run: |
@@ -54,7 +54,7 @@ jobs:
           trivyignores: ${{ github.workspace }}/.trivyignore
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       # Solo verifica che l'immagine si costruisca — nessun push, nessun tag
       # pubblico. Il publish reale vive in release.yml, solo su tag v*.

@@ -2,7 +2,7 @@
 # Rivalutare quando la causa sottostante cambia (nuova versione dipendenza/immagine base).
 
 # DS-0002 (nessun USER non-root nel Dockerfile): falso positivo verificato.
-# Base image php:8.4-apache — il processo master Apache gira sempre come
+# Base image php:8.5-apache — il processo master Apache gira sempre come
 # root per design (bind sulla porta privilegiata, gestione dei worker), i
 # worker che processano richieste reali girano come www-data via
 # APACHE_RUN_USER/APACHE_RUN_GROUP già impostati nell'immagine ufficiale
