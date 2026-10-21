@@ -14,7 +14,7 @@
           <?= htmlspecialchars(COMUNE_NOME) ?> — Valori OMI
         </a>
         &nbsp;
-        <a href="<?= GITHUB_URL ?>/<?= APP_IS_TAG ? 'releases/tag/' . APP_REVISION : 'commit/' . APP_REVISION ?>" 
+        <a href="<?= GITHUB_URL ?>" 
            target="_blank" class="text-decoration-none" title="Visualizza su GitHub">
           <span class="version-badge">
             <?= (APP_IS_TAG && !str_starts_with(APP_VERSION, 'v')) ? 'v' . APP_VERSION : APP_VERSION ?>
