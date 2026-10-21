@@ -1,5 +1,5 @@
 # 🏗️ Valori Venali Aree Fabbricabili
-![CI/CD - Valori Venali](https://github.com/mirkochipdotcom/valori-venali/actions/workflows/ci.yml/badge.svg)
+![Test](https://github.com/Comune-di-Montesilvano/valori-venali/actions/workflows/test.yml/badge.svg)
 
 Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbricabili**, basato sui valori OMI (Osservatorio del Mercato Immobiliare) dell'Agenzia delle Entrate.
 
@@ -8,7 +8,7 @@ Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbri
 | Layer | Tecnologia |
 |-------|-----------|
 | Frontend | Bootstrap Italia v2 (CDN) |
-| Backend | PHP 8.2 |
+| Backend | PHP 8.4 |
 | Web Server | Apache 2.4 |
 | Database | MariaDB 11 |
 | Container | Docker Compose |
@@ -68,7 +68,7 @@ docker compose up -d
 ├── .env                    # Segreti locali (gitignored)
 ├── .env.example            # Template
 ├── docker/
-│   ├── php/Dockerfile      # PHP 8.2 + Apache (pubblicato su GHCR)
+│   ├── php/Dockerfile      # PHP 8.4 + Apache (pubblicato su GHCR)
 │   └── db/Dockerfile       # MariaDB 11 con initdb embedded
 ├── initdb/01_schema.sql    # Schema + seed DB (copiato nell'immagine db)
 └── src/                    # Document root Apache

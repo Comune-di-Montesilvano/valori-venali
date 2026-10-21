@@ -5,6 +5,12 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
+  # Rebuild settimanale: le patch Debian/PHP della base image arrivano solo
+  # ricostruendo. Se lo scan immagine trova CVE correggibili il run fallisce
+  # e GitHub manda la mail di "workflow failed" — è l'avviso che mancava.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 concurrency:
   group: test-${{ github.ref }}
@@ -22,7 +28,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
 
       - name: Syntax check (Lint)
         run: |
@@ -63,3 +69,17 @@ jobs:
           file: docker/php/Dockerfile
           push: false
           load: true
+          pull: true
+          tags: valori-venali:ci
+
+      # Scan CVE dell'immagine appena buildata — bloccante su HIGH/CRITICAL
+      # con fix disponibile. Su schedule segnala quando serve una release.
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        with:
+          version: latest
+          image-ref: valori-venali:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: ${{ github.workspace }}/.trivyignore
