@@ -150,4 +150,4 @@ Richiede `packages: write` per il push sul registry (in `release.yml`).
 
 ## Versione
 
-Attuale: **2.3.3** (ultimo tag; il badge viene da `APP_VERSION` in build) — vedere `src/layout/footer.php` per il badge versione.
+Attuale: **2.3.4** (ultimo tag; il badge viene da `APP_VERSION` in build) — vedere `src/layout/footer.php` per il badge versione.
