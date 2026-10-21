@@ -18,3 +18,5 @@ Thumbs.db
 .serena/
 *.swp
 uploads/
+# Dipendenze npm (asset installati nel build Docker)
+node_modules/

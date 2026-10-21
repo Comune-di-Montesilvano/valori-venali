@@ -7,7 +7,7 @@ Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbri
 
 | Layer | Tecnologia |
 |-------|-----------|
-| Frontend | Bootstrap Italia v2 (CDN) |
+| Frontend | Bootstrap Italia v2 (self-hosted, nessun CDN) |
 | Backend | PHP 8.4 |
 | Web Server | Apache 2.4 |
 | Database | MariaDB 11 |
@@ -36,7 +36,7 @@ open http://localhost:8080
 
 ### Produzione (immagine prebuilt)
 
-L'immagine PHP/Apache è pubblicata automaticamente su GHCR ad ogni push su `master`. Per usarla in produzione, nel `docker-compose.yml` sostituisci il blocco `build:` del servizio `app` con:
+L'immagine PHP/Apache è pubblicata su GHCR a ogni release (`v*`) e `:latest` viene ricostruita ogni settimana con le patch di sicurezza e le dipendenze aggiornate. Per usarla in produzione, nel `docker-compose.yml` sostituisci il blocco `build:` del servizio `app` con:
 
 ```yaml
 image: ghcr.io/comune-di-montesilvano/valori-venali:latest

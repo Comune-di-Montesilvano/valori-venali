@@ -5,11 +5,7 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-  # Rebuild settimanale: le patch Debian/PHP della base image arrivano solo
-  # ricostruendo. Se lo scan immagine trova CVE correggibili il run fallisce
-  # e GitHub manda la mail di "workflow failed" — è l'avviso che mancava.
-  schedule:
-    - cron: "0 6 * * 1"
+  # Il rebuild settimanale con publish di :latest vive in publish-latest.yml
   workflow_dispatch:
 
 concurrency:
@@ -72,8 +68,17 @@ jobs:
           pull: true
           tags: valori-venali:ci
 
+      # Avvio reale app + MariaDB: è il gate che rende sicuro l'auto-merge
+      # delle PR Dependabot (PHP, Bootstrap Italia, MariaDB, Node).
+      - name: Smoke test
+        run: .github/scripts/smoke-test.sh valori-venali:ci
+
+      - name: Log app (se smoke test fallisce)
+        if: failure()
+        run: cat smoke-app.log || true
+
       # Scan CVE dell'immagine appena buildata — bloccante su HIGH/CRITICAL
-      # con fix disponibile. Su schedule segnala quando serve una release.
+      # con fix disponibile.
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         with:

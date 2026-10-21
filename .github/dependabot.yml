@@ -1,9 +1,36 @@
 version: 2
+# Giro settimanale di lunedì: patch/minor auto-mergiate da
+# dependabot-automerge.yml, major lasciate aperte. publish-latest.yml
+# (martedì) ripubblica :latest con quanto mergiato.
+# NB: cooldown accetta solo default-days per questi ecosistemi
+# (semver-major-days invalida il file → Dependabot non parte).
 updates:
+  # Base image app (PHP+Apache), stage Node per gli asset, MariaDB dev
   - package-ecosystem: docker
-    directory: "/docker/php"
+    directories:
+      - "/docker/php"
+      - "/docker/db"
     schedule:
       interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+
+  # MariaDB usata in produzione
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+
+  # Bootstrap Italia (asset self-hosted)
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
     cooldown:
       default-days: 7
 
@@ -11,5 +38,6 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
     cooldown:
       default-days: 7

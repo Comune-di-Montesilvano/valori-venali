@@ -25,8 +25,9 @@
   </div>
 </footer>
 
-<!-- Bootstrap Italia JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.13.0/dist/js/bootstrap-italia.bundle.min.js"
-        crossorigin="anonymous"></script>
+<!-- Bootstrap Italia JS + font (self-hosted, niente CDN/Google Fonts) -->
+<script>window.__PUBLIC_PATH__ = '<?= APP_URL ?>/assets/bootstrap-italia/fonts';</script>
+<script src="<?= APP_URL ?>/assets/bootstrap-italia/js/bootstrap-italia.bundle.min.js"></script>
+<script>bootstrap.loadFonts();</script>
 </body>
 </html>

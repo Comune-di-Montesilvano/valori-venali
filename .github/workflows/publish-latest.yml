@@ -1,0 +1,123 @@
+name: Publish latest
+
+# Rebuild settimanale di :latest con base image e dipendenze aggiornate.
+# Non crea né sposta MAI tag di versione (v*): quelli li gestisce solo
+# un umano tramite release.yml.
+#
+# Sorgente (ibrido):
+# - dopo l'ultimo tag v* su master ci sono solo commit Dependabot
+#   → build da master (bump dipendenze già mergiati inclusi)
+# - c'è lavoro umano non rilasciato
+#   → build dall'ultimo tag (solo patch base PHP/Debian, niente feature a metà)
+#
+# Gate: smoke test + Trivy bloccante. Se fallisce non pubblica e GitHub manda
+# la mail "workflow failed".
+
+on:
+  schedule:
+    # Martedì 06:00 UTC: dopo il giro Dependabot del lunedì e i relativi auto-merge
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-latest
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Rebuild & publish :latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: master
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Scegli sorgente (master o ultimo tag)
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' HEAD)
+          HUMAN_COMMITS=$(git log "$LAST_TAG..HEAD" --format='%an' | grep -vc '^dependabot\[bot\]$' || true)
+          if [ "$HUMAN_COMMITS" -eq 0 ]; then
+            SRC=$(git rev-parse HEAD)
+            if [ "$SRC" = "$(git rev-list -n1 "$LAST_TAG")" ]; then
+              VERSION="$LAST_TAG"
+            else
+              VERSION="$LAST_TAG+deps.$(git rev-parse --short HEAD)"
+            fi
+            echo "Solo commit Dependabot dopo $LAST_TAG → build da master"
+          else
+            SRC=$(git rev-list -n1 "$LAST_TAG")
+            VERSION="$LAST_TAG"
+            echo "$HUMAN_COMMITS commit non rilasciati dopo $LAST_TAG → build dal tag"
+          fi
+          git worktree add -q "$RUNNER_TEMP/build" "$SRC"
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "BUILD_DIR=$RUNNER_TEMP/build"
+            echo "APP_VERSION=$VERSION"
+            echo "APP_REVISION=$SRC"
+            echo "IMAGE=ghcr.io/$OWNER/valori-venali"
+            echo "WEEKLY_TAG=weekly-$(date -u +%Y%m%d)"
+          } >> "$GITHUB_ENV"
+          echo "### :latest ← $VERSION (\`$SRC\`)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build (base image fresca)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ env.BUILD_DIR }}
+          file: ${{ env.BUILD_DIR }}/docker/php/Dockerfile
+          pull: true
+          no-cache: true
+          push: false
+          load: true
+          build-args: |
+            APP_VERSION=${{ env.APP_VERSION }}
+            APP_REVISION=${{ env.APP_REVISION }}
+            APP_IS_TAG=false
+            GITHUB_URL=https://github.com/${{ github.repository }}
+          tags: valori-venali:candidate
+
+      # Script da master (i tag vecchi possono non averlo), dati dalla sorgente
+      - name: Smoke test
+        working-directory: ${{ env.BUILD_DIR }}
+        run: ${{ github.workspace }}/.github/scripts/smoke-test.sh valori-venali:candidate
+
+      - name: Log app (se smoke test fallisce)
+        if: failure()
+        working-directory: ${{ env.BUILD_DIR }}
+        run: cat smoke-app.log || true
+
+      - name: Trivy image scan (bloccante)
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        with:
+          version: latest
+          image-ref: valori-venali:candidate
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: ${{ github.workspace }}/.trivyignore
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Solo :latest + :weekly-YYYYMMDD (per rollback). Mai tag v*.
+      - name: Push :latest
+        run: |
+          for tag in latest "$WEEKLY_TAG"; do
+            docker tag valori-venali:candidate "$IMAGE:$tag"
+            docker push -q "$IMAGE:$tag"
+          done
+          echo "Pubblicati \`$IMAGE:latest\` e \`$IMAGE:$WEEKLY_TAG\`" >> "$GITHUB_STEP_SUMMARY"

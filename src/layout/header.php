@@ -59,14 +59,9 @@ $canonicalUrl   = APP_URL . $_SERVER['REQUEST_URI'];
 
   <title><?= htmlspecialchars($pageTitle) ?> — <?= htmlspecialchars($comuneNome) ?></title>
 
-  <!-- Bootstrap Italia -->
+  <!-- Bootstrap Italia (self-hosted, versione in package.json) -->
   <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.13.0/dist/css/bootstrap-italia.min.css"
-        crossorigin="anonymous">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700;900&family=Lora:wght@400;700&family=Roboto+Mono&display=swap"
-        rel="stylesheet">
+        href="<?= APP_URL ?>/assets/bootstrap-italia/css/bootstrap-italia.min.css">
 
   <style>
     :root {
