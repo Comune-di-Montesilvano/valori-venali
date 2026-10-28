@@ -36,7 +36,7 @@ open http://localhost:8080
 
 ### Produzione (immagine prebuilt)
 
-L'immagine PHP/Apache è pubblicata su GHCR a ogni release (`v*`) e `:latest` viene ricostruita ogni settimana con le patch di sicurezza e le dipendenze aggiornate. Per usarla in produzione, nel `docker-compose.yml` sostituisci il blocco `build:` del servizio `app` con:
+L'immagine PHP/Apache è pubblicata su GHCR a ogni release (`v*`); `:latest` viene ricostruita in automatico solo quando serve (aggiornamenti Dependabot mergiati, patch di sicurezza Debian, CVE con fix), mai con modifiche non rilasciate. Ogni immagine è scansionata con Trivy, provata con uno smoke test e firmata (cosign keyless + attestazioni SLSA/SBOM): prima del deploy si può verificare con `.github/scripts/verify-image.sh <tag>`. Per usarla in produzione, nel `docker-compose.yml` sostituisci il blocco `build:` del servizio `app` con:
 
 ```yaml
 image: ghcr.io/comune-di-montesilvano/valori-venali:latest

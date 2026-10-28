@@ -1,11 +1,12 @@
 # Asset frontend (Bootstrap Italia + font) — versioni in package.json,
 # aggiornate da Dependabot (ecosistema npm). Serviti dall'app, niente CDN.
-FROM node:26-alpine AS assets
+# Immagini base fissate per digest: Dependabot aggiorna tag e digest insieme.
+FROM node:26-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS assets
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
-FROM php:8.5-apache
+FROM php:8.5-apache@sha256:fce5eaf640e8fb620aac9aaf53efebe5584b3f3c1f2033b78b08be252be92adc
 
 # Image metadata
 ARG APP_VERSION=dev
@@ -17,10 +18,15 @@ ENV APP_REVISION=$APP_REVISION
 ENV APP_IS_TAG=$APP_IS_TAG
 ENV GITHUB_URL=$GITHUB_URL
 LABEL org.opencontainers.image.source=$GITHUB_URL
+# Commit sorgente: rebuild-check.sh lo confronta con il target di :latest
+LABEL org.opencontainers.image.revision=$APP_REVISION
 LABEL org.opencontainers.image.maintainer="Comune-di-Montesilvano"
 
-# Patch di sicurezza Debian uscite dopo l'ultima build dell'immagine base
-RUN apt-get update \
+# Patch di sicurezza Debian uscite dopo l'ultima build dell'immagine base.
+# PKG_REFRESH (data del giorno, da release.yml) invalida questo layer una
+# volta al giorno: senza, la cache registry lo congelerebbe.
+ARG PKG_REFRESH=none
+RUN echo "pkg refresh: $PKG_REFRESH"     && apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 

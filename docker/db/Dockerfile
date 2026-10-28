@@ -1,4 +1,4 @@
-FROM mariadb:11
+FROM mariadb:11@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd
 
 # Copia gli script di inizializzazione nella directory usata dall'image ufficiale
 COPY initdb/ /docker-entrypoint-initdb.d/

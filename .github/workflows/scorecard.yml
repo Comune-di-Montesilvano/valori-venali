@@ -1,0 +1,41 @@
+name: OpenSSF Scorecard
+
+# Punteggio di sicurezza della supply chain del repo (protezione branch,
+# Action fissate per SHA, permessi dei token, dipendenze aggiornate, firma
+# delle release...). Risultati nella tab Security e su https://scorecard.dev.
+on:
+  push:
+    branches: [ "master" ]
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      # Pubblicazione dei risultati su scorecard.dev (badge) via OIDC
+      id-token: write
+    steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: true
+
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        with:
+          sarif_file: scorecard.sarif
+          category: scorecard

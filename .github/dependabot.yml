@@ -1,30 +1,26 @@
 version: 2
-# Giro settimanale di lunedì: patch/minor auto-mergiate da
-# dependabot-automerge.yml, major lasciate aperte. publish-latest.yml
-# (martedì) ripubblica :latest con quanto mergiato.
-# NB: cooldown accetta solo default-days per questi ecosistemi
-# (semver-major-days invalida il file → Dependabot non parte).
+# Ogni ecosistema: minor+patch raggruppate in una sola PR, mergiata in automatico
+# (dependabot-automerge.yml → merge queue di master); le major restano PR
+# singole, aperte come promemoria per l'upgrade manuale.
+# Giro giornaliero alle 01:00 con cooldown di 7 giorni: una versione appena
+# pubblicata (anche compromessa e ritirata dopo qualche giorno) non entra in
+# automatico. Major a 14 giorni solo per npm: docker, docker-compose e
+# github-actions non supportano semver-major-days (config invalido = Dependabot
+# non parte mai, errore visibile solo su /network/updates).
+# Il cooldown non vale per i Dependabot security updates (repo setting): gli
+# advisory arrivano subito. Il rebuild di :latest (release.yml, 04:30 UTC)
+# pubblica i merge della notte.
 updates:
-  # Base image app (PHP+Apache), stage Node per gli asset, MariaDB dev
+  # Base image app (PHP+Apache), stage Node per gli asset, MariaDB dev.
+  # FROM fissati per digest: Dependabot aggiorna tag e digest insieme.
   - package-ecosystem: docker
     directories:
       - "/docker/php"
       - "/docker/db"
     schedule:
-      interval: weekly
-      day: monday
-    cooldown:
-      default-days: 7
-    ignore:
-      - dependency-name: mariadb
-        update-types: ["version-update:semver-major"]
-
-  # MariaDB usata in produzione
-  - package-ecosystem: docker-compose
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: monday
+      interval: daily
+      time: "01:00"
+      timezone: Europe/Rome
     cooldown:
       default-days: 7
     # MariaDB: restiamo sulla 11 (= 11.8 LTS, EOL 2030-02, più lunga della
@@ -32,20 +28,60 @@ updates:
     ignore:
       - dependency-name: mariadb
         update-types: ["version-update:semver-major"]
+    groups:
+      docker-minor-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # MariaDB usata in produzione (digest fissato nel compose)
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "01:00"
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major"]
+    groups:
+      compose-minor-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: chore
+      include: scope
 
   # Bootstrap Italia (asset self-hosted)
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
-      day: monday
+      interval: daily
+      time: "01:00"
+      timezone: Europe/Rome
     cooldown:
       default-days: 7
+      semver-major-days: 14
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: chore
+      include: scope
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
-      day: monday
+      interval: daily
+      time: "01:00"
+      timezone: Europe/Rome
     cooldown:
       default-days: 7
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: chore
+      include: scope

@@ -1,13 +1,12 @@
 name: Dependabot auto-merge
 
-# Patch e minor: auto-merge (squash) appena passano i required check
-# (PHP Lint + Docker Build Test con smoke test e Trivy).
+# Patch e minor: auto-merge appena passano i required check; la PR entra
+# nella merge queue di master, che la rimette in pari e rilancia i check sul
+# commit che verrà unito (nessun job "update-branch" da mantenere).
 # Major: nessun merge, la PR resta aperta come segnalazione + commento.
 #
 # L'auto-merge è abilitato col token della GitHub App, non con GITHUB_TOKEN:
-# un merge fatto da GITHUB_TOKEN non genera eventi push, quindi
-# dependabot-update-branches.yml non partirebbe e le altre PR resterebbero
-# "behind" (master ha strict: true).
+# le azioni fatte con GITHUB_TOKEN non generano eventi per altri workflow.
 # Secret DEPS_APP_CLIENT_ID / DEPS_APP_PRIVATE_KEY: vanno anche nei
 # secret *Dependabot*, i workflow lanciati da Dependabot non vedono quelli Actions.
 
@@ -17,17 +16,29 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
   automerge:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
       - name: Metadata Dependabot
         id: meta
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Token GitHub App
         id: app
@@ -37,9 +48,10 @@ jobs:
           client-id: ${{ secrets.DEPS_APP_CLIENT_ID }}
           private-key: ${{ secrets.DEPS_APP_PRIVATE_KEY }}
 
+      # Con la merge queue il metodo (squash) lo decide il ruleset di master.
       - name: Auto-merge patch/minor
-        if: steps.meta.outputs.update-type != 'version-update:semver-major'
-        run: gh pr merge --auto --squash "$PR_URL"
+        if: steps.app.outcome == 'success'
+        run: gh pr merge --auto "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ steps.app.outputs.token }}
