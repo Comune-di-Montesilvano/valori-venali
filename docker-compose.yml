@@ -19,6 +19,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    # Privilegi minimi: l'entrypoint parte da root e passa a mysql, servono
+    # solo le capability per chown dei dati e cambio utente.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ ALL ]
+    cap_add: [ CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID ]
+    read_only: true
+    tmpfs:
+      - /run/mysqld
+      - /tmp
 
   app:
     # Production: use the prebuilt image from GHCR by default
@@ -33,9 +43,9 @@ services:
       DB_PORT: ${DB_PORT:-3306}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_PASS: ${DB_PASS:?DB_PASS obbligatoria}
       APP_URL: ${APP_URL:-http://localhost:8080}
-      APP_SECRET: ${APP_SECRET}
+      APP_SECRET: ${APP_SECRET:?APP_SECRET obbligatoria (min 32 caratteri)}
       APP_ADMIN_USER: ${APP_ADMIN_USER}
       APP_ADMIN_PASS: ${APP_ADMIN_PASS}
       COMUNE_NOME: ${COMUNE_NOME}
@@ -43,9 +53,18 @@ services:
     volumes:
       # Persistent uploads (separate volume)
       - app_uploads:/var/www/html/uploads
-
+    # L'immagine gira come www-data su 8080 (fino a v2.4.x: root su 80).
+    # Filesystem in sola lettura: scritture solo su uploads (volume) e tmpfs.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ ALL ]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/apache2
+      - /var/lock/apache2
     ports:
-      - "${APP_PORT:-8080}:80"
+      - "${APP_PORT:-8080}:8080"
     networks:
       - valori_net
 
