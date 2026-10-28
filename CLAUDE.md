@@ -101,7 +101,8 @@ Le variabili critiche da impostare per ogni Comune:
 - Tutte le route admin protette da `requireAuth()` in `src/includes/auth.php`
 - CSRF token su tutti i form POST (`verifyCsrf()` all'inizio di ogni handler POST — `impostazioni.php` ne era privo fino al 2026-10)
 - Upload logo/favicon: estensione da allowlist + `getimagesize()`, mai l'estensione del client (prima: `logo.php` caricabile ed eseguibile). `/uploads` ha PHP spento (`conf-available/uploads.conf`), lo smoke test lo verifica
-- Runtime: immagine `USER www-data`, Apache su **8080** (fino a v2.4.x root su 80: chi aggiorna a ≥ la release successiva deve mappare `<porta>:8080`). Compose: `read_only`, `cap_drop: ALL`, `no-new-privileges`, tmpfs `/tmp` `/var/run/apache2` `/var/lock/apache2`; DB con le 5 capability dell'entrypoint. Codice di proprietà root, scrivibile solo `uploads/`
+- Runtime: immagine `USER www-data`, Apache resta su **80** (sysctl `net.ipv4.ip_unprivileged_port_start=0`, default Docker ≥ 20.10, dichiarato nel compose). Compose: `read_only`, `cap_drop: ALL`, `no-new-privileges`, tmpfs `/tmp` `/var/run/apache2` `/var/lock/apache2`; DB con le 5 capability dell'entrypoint. Codice di proprietà root, scrivibile solo `uploads/`
+- **Il compose su master è quello di produzione**: Portainer lo scarica da git in automatico, mentre `:latest` cambia solo su tag/Dependabot. Ogni modifica al compose deve funzionare **sia con l'immagine `:latest` attuale sia con la prossima** (2026-10: porta 8080 + `cap_drop: ALL` su master con `:latest` ancora root/80 avrebbe rotto la produzione). Per questo `cap_add: [SETUID, SETGID]` sull'app finché `:latest` è ≤ v2.4.x (master Apache root): toglierle dopo il primo tag con `USER www-data`
 - PDO prepared statements ovunque
 - Cookie sessione: HttpOnly, SameSite=Strict, Secure se HTTPS
 - Admin: `noindex, nofollow` via robots.php

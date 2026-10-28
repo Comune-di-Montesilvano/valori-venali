@@ -39,10 +39,10 @@ RUN a2enmod rewrite
 # Configura Apache per permettere .htaccess
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
-# Apache su 8080: gira come www-data (USER sotto), senza root né capability
-# per aprire porte < 1024. Il compose mappa ${APP_PORT}:8080.
-RUN sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
-    && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf
+# Apache resta su 80 anche come www-data (USER sotto): Docker >= 20.10 imposta
+# net.ipv4.ip_unprivileged_port_start=0 nei container (il compose lo dichiara
+# comunque), quindi niente capability. Porta invariata: il mapping del compose
+# (scaricato da git da Portainer) vale per le immagini vecchie e nuove.
 
 # Upload (logo/favicon): mai eseguiti come PHP, anche se un .php ci finisse dentro
 RUN printf '%s\n' \
@@ -84,4 +84,4 @@ RUN chown -R root:root /var/www/html \
     && chown www-data:www-data /var/www/html/uploads
 
 USER www-data
-EXPOSE 8080
+EXPOSE 80

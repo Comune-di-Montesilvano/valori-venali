@@ -53,18 +53,23 @@ services:
     volumes:
       # Persistent uploads (separate volume)
       - app_uploads:/var/www/html/uploads
-    # L'immagine gira come www-data su 8080 (fino a v2.4.x: root su 80).
     # Filesystem in sola lettura: scritture solo su uploads (volume) e tmpfs.
+    # Apache su 80 anche da www-data grazie al sysctl (default Docker >= 20.10).
     security_opt:
       - no-new-privileges:true
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
     cap_drop: [ ALL ]
+    # SETUID/SETGID servono SOLO alle immagini fino a v2.4.x (master Apache
+    # root che passa a www-data). Toglierle quando :latest è >= v2.5.0.
+    cap_add: [ SETUID, SETGID ]
     read_only: true
     tmpfs:
       - /tmp
       - /var/run/apache2
       - /var/lock/apache2
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8080}:80"
     networks:
       - valori_net
 
