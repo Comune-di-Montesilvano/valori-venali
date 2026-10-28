@@ -60,9 +60,6 @@ services:
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 0
     cap_drop: [ ALL ]
-    # SETUID/SETGID servono SOLO alle immagini fino a v2.4.x (master Apache
-    # root che passa a www-data). Toglierle quando :latest è >= v2.5.0.
-    cap_add: [ SETUID, SETGID ]
     read_only: true
     tmpfs:
       - /tmp
