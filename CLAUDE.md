@@ -99,7 +99,9 @@ Le variabili critiche da impostare per ogni Comune:
 ## Sicurezza
 
 - Tutte le route admin protette da `requireAuth()` in `src/includes/auth.php`
-- CSRF token su tutti i form POST
+- CSRF token su tutti i form POST (`verifyCsrf()` all'inizio di ogni handler POST — `impostazioni.php` ne era privo fino al 2026-10)
+- Upload logo/favicon: estensione da allowlist + `getimagesize()`, mai l'estensione del client (prima: `logo.php` caricabile ed eseguibile). `/uploads` ha PHP spento (`conf-available/uploads.conf`), lo smoke test lo verifica
+- Runtime: immagine `USER www-data`, Apache su **8080** (fino a v2.4.x root su 80: chi aggiorna a ≥ la release successiva deve mappare `<porta>:8080`). Compose: `read_only`, `cap_drop: ALL`, `no-new-privileges`, tmpfs `/tmp` `/var/run/apache2` `/var/lock/apache2`; DB con le 5 capability dell'entrypoint. Codice di proprietà root, scrivibile solo `uploads/`
 - PDO prepared statements ovunque
 - Cookie sessione: HttpOnly, SameSite=Strict, Secure se HTTPS
 - Admin: `noindex, nofollow` via robots.php
@@ -131,7 +133,7 @@ Lo schema DB è incluso nell'immagine `db` (non serve bind mount su `initdb/`).
 
 **Regola di `:latest`** (decisione del maintainer): cambia **solo** con un nuovo tag `v*` oppure con aggiornamenti delle dipendenze (merge Dependabot, patch Debian, CVE con fix). Lavoro umano non taggato non va **mai** su `:latest`. Target = ultimo tag + il prefisso più lungo di soli commit `dependabot[bot]` che lo seguono su master (`--first-parent`); bump Dependabot arrivati dopo un commit umano → issue "Aggiornamenti Dependabot in attesa di tag", si sbloccano col tag. `APP_VERSION` = `vX.Y.Z` o `vX.Y.Z+deps.<sha>`. **I tag `v*` li crea solo l'umano.**
 
-- **`test.yml`** — PR + `merge_group` + dispatch: `PHP Lint`, `Docker Build Test` (Trivy config `DS-0002` ignorato in `.trivyignore` → build no push con `PKG_REFRESH` → smoke test `.github/scripts/smoke-test.sh` → Trivy image bloccante HIGH/CRITICAL con fix).
+- **`test.yml`** — PR + `merge_group` + dispatch: `PHP Lint`, `Docker Build Test` (Trivy config bloccante, `.trivyignore` vuoto → build no push con `PKG_REFRESH` → smoke test `.github/scripts/smoke-test.sh` (porta/utente letti dall'immagine: le immagini non-root girano con le restrizioni del compose; controlla anche il corpo delle pagine — con `display_errors` un Fatal esce con 200 — il token CSRF, codice read-only e PHP bloccato in uploads) → Trivy image bloccante HIGH/CRITICAL con fix).
 - **`security.yml`** — PR, coda, push master, giornaliero 05:00: `dependency-review` (solo PR, high), `npm-audit` (`--omit=dev --audit-level=high`), `trivy-fs` (vuln+secret+misconfig, SARIF `trivy-fs`).
 - **`release.yml`** — tag `v*`, giornaliero 04:30 UTC, dispatch (`rebuild_latest`, `dry_run`). `setup` (tag → `vX.Y.Z` + `latest` se è il tag più alto; altrimenti `.github/scripts/rebuild-check.sh`: cause a revision di latest ≠ target, b `apt list --upgradable`, c Trivy HIGH/CRITICAL con fix; nessuna causa = skip; errore di verifica = causa) → `build-push` (push **solo per digest**, Trivy bloccante, SBOM CycloneDX, `attest-build-provenance` + `attest-sbom`, `cosign sign` keyless; cache registry `:buildcache`) → `smoke` (smoke-test sul digest, script da questo commit, initdb/compose dalla sorgente) → `publish` (`imagetools create`: tag solo ora). Rebuild automatico → `latest` + `latest-YYYYMMDD` (rollback). Causa c ancora bloccata → issue "Vulnerabilità non risolvibile con un rebuild".
 - **`dependabot-automerge.yml`** — patch/minor `gh pr merge --auto` col token della GitHub App → merge queue; major → commento, resta aperta.

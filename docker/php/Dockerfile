@@ -39,6 +39,24 @@ RUN a2enmod rewrite
 # Configura Apache per permettere .htaccess
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
+# Apache su 8080: gira come www-data (USER sotto), senza root né capability
+# per aprire porte < 1024. Il compose mappa ${APP_PORT}:8080.
+RUN sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
+    && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf
+
+# Upload (logo/favicon): mai eseguiti come PHP, anche se un .php ci finisse dentro
+RUN printf '%s\n' \
+      '<Directory /var/www/html/uploads>' \
+      '    php_admin_flag engine off' \
+      '    AllowOverride None' \
+      '    Options -Indexes -ExecCGI' \
+      '    <FilesMatch "\.(php|phtml|phar|php[0-9])$">' \
+      '        Require all denied' \
+      '    </FilesMatch>' \
+      '</Directory>' \
+      > /etc/apache2/conf-available/uploads.conf \
+    && a2enconf uploads
+
 # Imposta upload max size per CSV OMI
 RUN echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size = 25M"       >> /usr/local/etc/php/conf.d/uploads.ini
@@ -59,9 +77,11 @@ RUN printf '%s\n' \
 WORKDIR /var/www/html
 COPY src/ /var/www/html/
 
-# Assicura permessi corretti per www-data e crea cartella uploads
-RUN chown -R www-data:www-data /var/www/html \
+# Codice di root, in sola lettura per www-data; scrivibile solo uploads/
+# (volume app_uploads). In produzione il filesystem è read_only (compose).
+RUN chown -R root:root /var/www/html \
     && mkdir -p /var/www/html/uploads \
-    && chown -R www-data:www-data /var/www/html/uploads
+    && chown www-data:www-data /var/www/html/uploads
 
-EXPOSE 80
+USER www-data
+EXPOSE 8080

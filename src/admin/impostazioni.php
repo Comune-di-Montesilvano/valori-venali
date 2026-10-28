@@ -15,12 +15,31 @@ if (!is_dir($uploadsDir)) {
     mkdir($uploadsDir, 0755, true);
 }
 
+// Estensioni ammesse per logo e favicon: il file finisce in /uploads, servito
+// da Apache. Mai l'estensione scelta dal client (logo.php = esecuzione codice).
+// SVG escluso: può contenere script.
+const UPLOAD_EXT_LOGO    = ['png', 'jpg', 'jpeg', 'webp'];
+const UPLOAD_EXT_FAVICON = ['png', 'ico'];
+
+function uploadExt(array $file, array $allowed): ?string {
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed, true)) {
+        return null;
+    }
+    // Il contenuto deve essere davvero un'immagine (ico: getimagesize lo riconosce)
+    return @getimagesize($file['tmp_name']) !== false ? $ext : null;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+
     // Gestione Logo
     if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-        $ext = pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION);
+        $ext = uploadExt($_FILES['logo'], UPLOAD_EXT_LOGO);
         $newName = 'logo.' . $ext;
-        if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadsDir . '/' . $newName)) {
+        if ($ext === null) {
+            $error = 'Formato logo non ammesso (PNG, JPG o WebP).';
+        } elseif (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadsDir . '/' . $newName)) {
             Settings::set('logo_path', $newName);
             $message = 'Impostazioni aggiornate con successo.';
         } else {
@@ -30,9 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Gestione Favicon
     if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] === UPLOAD_ERR_OK) {
-        $ext = pathinfo($_FILES['favicon']['name'], PATHINFO_EXTENSION);
+        $ext = uploadExt($_FILES['favicon'], UPLOAD_EXT_FAVICON);
         $newName = 'favicon.' . $ext;
-        if (move_uploaded_file($_FILES['favicon']['tmp_name'], $uploadsDir . '/' . $newName)) {
+        if ($ext === null) {
+            $error = 'Formato favicon non ammesso (PNG o ICO).';
+        } elseif (move_uploaded_file($_FILES['favicon']['tmp_name'], $uploadsDir . '/' . $newName)) {
             Settings::set('favicon_path', $newName);
             $message = 'Impostazioni aggiornate con successo.';
         } else {
@@ -86,6 +107,7 @@ include __DIR__ . '/../layout/header.php';
       <div class="card-header">🖼 Personalizzazione Logo e Favicon</div>
       <div class="card-body p-4">
         <form method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
           
           <div class="mb-4">
             <label class="form-label fw-bold">Logo Istituzionale</label>
@@ -99,7 +121,7 @@ include __DIR__ . '/../layout/header.php';
                     <?php endif; ?>
                 </div>
                 <div class="flex-grow-1">
-                    <input type="file" name="logo" class="form-control" accept="image/png,image/jpeg,image/svg+xml">
+                    <input type="file" name="logo" class="form-control" accept="image/png,image/jpeg,image/webp">
                     <div class="form-text mt-2">
                         Formati consigliati: <strong>PNG, SVG</strong>.<br>
                         Altezza ottimale: 48-64px.
