@@ -42,13 +42,14 @@ for _ in $(seq 1 60); do
 done
 [ "$(docker inspect -f '{{.State.Health.Status}}' smoke-db)" = healthy ] || { docker logs smoke-db; exit 1; }
 
-# Porta e utente dall'immagine: fino a v2.4.x root su 80, poi www-data su 8080.
+# Porta e utente dall'immagine (fino a v2.4.x root, poi www-data; porta 80).
 # Le immagini non-root girano con le stesse restrizioni del compose di produzione.
 APP_PORT_IN="$(docker inspect -f '{{range $p, $_ := .Config.ExposedPorts}}{{$p}} {{end}}' "$IMAGE" | grep -oE '[0-9]+' | sort -n | tail -1)"
 APP_USER="$(docker inspect -f '{{.Config.User}}' "$IMAGE")"
 HARDEN=()
 if [ -n "$APP_USER" ]; then
   HARDEN=(--security-opt no-new-privileges:true --cap-drop ALL --read-only
+    --sysctl net.ipv4.ip_unprivileged_port_start=0
     --tmpfs /tmp --tmpfs /var/run/apache2 --tmpfs /var/lock/apache2
     --mount type=volume,dst=/var/www/html/uploads)
 fi
