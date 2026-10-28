@@ -37,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
         $Periodo = trim($Periodo);
 
         // Seconda riga: intestazione colonne CSV
-        $struttura  = fgetcsv($handle, 3000, ';');
+        // escape '' (RFC 4180, futuro default PHP): i CSV OMI non usano il backslash
+        $struttura  = fgetcsv($handle, 3000, ';', '"', '');
         if (!$struttura) {
             $messaggio = 'Il file CSV sembra vuoto o non valido.';
             $tipoMsg   = 'danger';
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
             $pdo->beginTransaction();
 
             try {
-                while (($data = fgetcsv($handle, 3000, ';')) !== false) {
+                while (($data = fgetcsv($handle, 3000, ';', '"', '')) !== false) {
                     $colonne = [];
                     $valori  = [];
                     foreach ($struttura as $idx => $campo) {

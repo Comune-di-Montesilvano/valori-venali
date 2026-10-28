@@ -48,9 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $destinazioni = DB::query('SELECT * FROM omi_destinazione_urbanistica ORDER BY destinazione');
 $valori_map   = [1 => 'Minimo', 2 => 'Medio', 3 => 'Massimo'];
 
-// Tipologie OMI disponibili per il select
+// Tipologie OMI disponibili per il select. Le righe CSV senza Cod_Tip non
+// sono abbinabili: escluse (e chiave null deprecata in PHP 8.5).
 $tipologie = DB::query(
-    'SELECT DISTINCT Cod_Tip, Descr_Tipologia, Stato FROM valori_omi ORDER BY Descr_Tipologia, Stato DESC'
+    "SELECT DISTINCT Cod_Tip, Descr_Tipologia, Stato FROM valori_omi
+     WHERE Cod_Tip IS NOT NULL AND Cod_Tip <> ''
+     ORDER BY Descr_Tipologia, Stato DESC"
 );
 
 // Mappa cod_tip → descrizione per la tabella
@@ -111,10 +114,10 @@ include __DIR__ . '/../layout/header.php';
           <tr>
             <td class="text-center"><code><?= (int) $d['id_destinazione'] ?></code></td>
             <td class="ps-3 fw-bold"><?= htmlspecialchars($d['destinazione']) ?></td>
-            <td><small><?= htmlspecialchars($desc_tip[$d['Cod_Tip']] ?? $d['Cod_Tip']) ?></small></td>
+            <td><small><?= htmlspecialchars($desc_tip[$d['Cod_Tip'] ?? ''] ?? $d['Cod_Tip'] ?? '') ?></small></td>
             <td class="text-center">
               <span class="badge <?= $d['Stato'] === 'N' ? 'bg-success' : 'bg-secondary' ?>">
-                <?= htmlspecialchars($d['Stato']) ?>
+                <?= htmlspecialchars($d['Stato'] ?? '') ?>
               </span>
             </td>
             <td class="text-center"><code><?= number_format((float)$d['coefficiente_destinazione'], 4, ',', '.') ?></code></td>
@@ -161,8 +164,8 @@ include __DIR__ . '/../layout/header.php';
           <select class="form-select" id="zona_omi" name="zona_omi" required>
             <option value="">— Seleziona tipologia —</option>
             <?php foreach ($tipologie as $t): ?>
-              <option value="<?= htmlspecialchars($t['Cod_Tip'] . '_' . $t['Stato']) ?>">
-                <?= htmlspecialchars($t['Descr_Tipologia']) ?> (<?= htmlspecialchars($t['Stato']) ?>)
+              <option value="<?= htmlspecialchars($t['Cod_Tip'] . '_' . ($t['Stato'] ?? '')) ?>">
+                <?= htmlspecialchars($t['Descr_Tipologia'] ?? '') ?> (<?= htmlspecialchars($t['Stato'] ?? '') ?>)
               </option>
             <?php endforeach; ?>
           </select>
