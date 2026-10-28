@@ -396,6 +396,18 @@ jobs:
             ghcr.io:443
             pkg-containers.githubusercontent.com:443
 
+      # Qui il login partirebbe subito dopo harden-runner, prima che le regole
+      # di uscita siano attive: "connection refused" su ghcr.io (run 40759674408).
+      # Negli altri job checkout/buildx danno il tempo; qui si aspetta esplicitamente.
+      - name: Attendi rete verso ghcr.io
+        run: |
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://ghcr.io/v2/ || true)
+            [ "$code" = 401 ] || [ "$code" = 200 ] && { echo "ghcr.io raggiungibile ($code)"; exit 0; }
+            echo "tentativo $i: $code"; sleep 5
+          done
+          echo "::error::ghcr.io non raggiungibile"; exit 1
+
       # Niente setup-buildx: imagetools lavora solo sul registry, basta il
       # buildx del runner (setup-buildx scaricherebbe BuildKit da Docker Hub).
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
