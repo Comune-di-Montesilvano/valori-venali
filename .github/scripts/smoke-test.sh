@@ -8,7 +8,8 @@
 set -euo pipefail
 
 IMAGE="${1:?uso: smoke-test.sh <immagine-app>}"
-DB_IMAGE="$(sed -n 's/^\s*image:\s*\(mariadb:.*\)$/\1/p' docker-compose.yml | head -1)"
+# tr -d '\r': checkout Windows con autocrlf → "invalid reference format"
+DB_IMAGE="$(tr -d '\r' < docker-compose.yml | sed -n 's/^\s*image:\s*\(mariadb:.*\)$/\1/p' | sed -n 1p)"
 NET="smoke-$$"
 PORT=18080
 BASE="http://localhost:${PORT}"

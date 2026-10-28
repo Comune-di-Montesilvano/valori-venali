@@ -33,6 +33,17 @@ RUN echo "pkg refresh: $PKG_REFRESH"     && apt-get update \
 # Installa estensioni PHP necessarie
 RUN docker-php-ext-install pdo pdo_mysql
 
+# php.ini di produzione: l'immagine ufficiale non ne ha uno e PHP senza ini
+# mostra gli errori nella pagina (percorsi, query). Errori solo nel log
+# (stderr → docker logs); E_ALL anche per le deprecation, che lo smoke test
+# cerca nei log. expose_php Off: niente versione PHP negli header (anche
+# php.ini-production la lascia On).
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && printf '%s\n' 'error_reporting = E_ALL' 'display_errors = Off' 'log_errors = On' 'error_log = /dev/stderr' \
+       'expose_php = Off' > "$PHP_INI_DIR/conf.d/zz-hardening.ini" \
+    && sed -i -e 's/^ServerTokens .*/ServerTokens Prod/' -e 's/^ServerSignature .*/ServerSignature Off/' \
+       /etc/apache2/conf-available/security.conf
+
 # Abilita mod_rewrite per URL friendly
 RUN a2enmod rewrite
 

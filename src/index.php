@@ -172,7 +172,7 @@ include __DIR__ . '/layout/header.php';
     <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
       <?php if ($periodi): ?>
         <span class="badge bg-white text-primary fs-6 px-3 py-2">
-          📅 Ultimo periodo: <?= htmlspecialchars($periodi[0]['Periodo']) ?>
+          📅 Ultimo periodo: <?= htmlspecialchars($periodi[0]['Periodo'] ?? '') ?>
         </span>
       <?php endif; ?>
     </div>
@@ -211,9 +211,9 @@ include __DIR__ . '/layout/header.php';
             <select class="form-select" id="periodo" name="periodo" required>
               <option value="">— Seleziona periodo —</option>
               <?php foreach ($periodi as $p): ?>
-                <option value="<?= htmlspecialchars($p['Periodo']) ?>"
+                <option value="<?= htmlspecialchars($p['Periodo'] ?? '') ?>"
                   <?= (($_POST['periodo'] ?? '') === $p['Periodo']) ? 'selected' : '' ?>>
-                  <?= htmlspecialchars($p['Periodo']) ?>
+                  <?= htmlspecialchars($p['Periodo'] ?? '') ?>
                 </option>
               <?php endforeach; ?>
             </select>
