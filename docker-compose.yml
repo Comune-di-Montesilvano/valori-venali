@@ -1,7 +1,8 @@
 services:
 
   db:
-    image: mariadb:11
+    # Digest fissato, aggiornato da Dependabot (docker-compose)
+    image: mariadb:11@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd
     container_name: valori_venali_db
     restart: always
     environment:

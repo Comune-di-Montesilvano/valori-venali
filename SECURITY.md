@@ -18,4 +18,14 @@ Solo l'ultima versione taggata (`vX.Y.Z`) riceve fix di sicurezza. Nessun suppor
 
 - Conferma di ricezione entro qualche giorno lavorativo.
 - Nessun bug bounty: il progetto è software libero per la PA, non un prodotto commerciale.
-- L'immagine Docker è scansionata con Trivy (config + vulnerabilità note) ad ogni build, risultati nella tab [Security](https://github.com/Comune-di-Montesilvano/valori-venali/security).
+- L'immagine Docker è scansionata con Trivy (config + vulnerabilità note) ad ogni build (bloccante su HIGH/CRITICAL con fix), risultati nella tab [Security](https://github.com/Comune-di-Montesilvano/valori-venali/security).
+
+## Verifica dell'immagine
+
+Le immagini su `ghcr.io/comune-di-montesilvano/valori-venali` sono firmate con cosign keyless da `release.yml` e hanno attestazioni GitHub di provenance (SLSA) e SBOM (CycloneDX). Prima di un deploy:
+
+```sh
+.github/scripts/verify-image.sh latest     # o un tag vX.Y.Z
+```
+
+Identità attesa: `https://github.com/Comune-di-Montesilvano/valori-venali/.github/workflows/release.yml@refs/(tags/v*|heads/master)`, issuer `https://token.actions.githubusercontent.com`.

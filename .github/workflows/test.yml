@@ -1,12 +1,17 @@
 name: Test
 
+# Required check del ruleset di master ("PHP Lint", "Docker Build Test": nomi
+# job invariati). Girano sulla PR e in merge queue (merge_group) sul commit
+# che verrà unito. Niente trigger push su master: il commit è già stato
+# testato in coda; il rebuild di :latest vive in release.yml.
 on:
-  push:
-    branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-  # Il rebuild settimanale con publish di :latest vive in publish-latest.yml
+  merge_group:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: test-${{ github.ref }}
@@ -18,8 +23,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Traffico in uscita registrato (audit, non bloccato): host contattati
+      # nel log del post-step e nella pagina insights StepSecurity della run.
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -33,31 +46,40 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      security-events: write
+    timeout-minutes: 20
     steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Scan del Dockerfile/config — bloccante, gira anche sulle PR senza
       # bisogno di aver già buildato nulla.
       - name: Trivy config scan (Dockerfile)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          version: latest # il binario Trivy pinnato di default da questa release dell'action (0.69.1) non installa
+          # Versione fissa: un rilascio Trivy compromesso non entra in automatico.
+          # trivy-version-check.yml apre una issue quando ne esce una nuova.
+          version: v0.76.1
           scan-type: config
           scan-ref: docker/php/Dockerfile
           severity: CRITICAL,HIGH
           exit-code: "1"
-          trivyignores: ${{ github.workspace }}/.trivyignore
+          trivyignores: .trivyignore
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # Solo verifica che l'immagine si costruisca — nessun push, nessun tag
-      # pubblico. Il publish reale vive in release.yml, solo su tag v*.
+      - name: Data per PKG_REFRESH
+        id: day
+        run: echo "pkg_refresh=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      # Solo verifica che l'immagine si costruisca — nessun push, nessun login.
+      # Il publish reale vive in release.yml.
       - name: Build (test only, no push)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -66,6 +88,8 @@ jobs:
           push: false
           load: true
           pull: true
+          build-args: |
+            PKG_REFRESH=${{ steps.day.outputs.pkg_refresh }}
           tags: valori-venali:ci
 
       # Avvio reale app + MariaDB: è il gate che rende sicuro l'auto-merge
@@ -82,9 +106,9 @@ jobs:
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          version: latest
+          version: v0.76.1
           image-ref: valori-venali:ci
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
-          trivyignores: ${{ github.workspace }}/.trivyignore
+          trivyignores: .trivyignore
