@@ -143,7 +143,7 @@ include __DIR__ . '/../layout/header.php';
             <select class="form-select" id="zona_omi" name="zona_omi" required <?= !$zone ? 'disabled' : '' ?>>
               <option value="">— Seleziona zona —</option>
               <?php foreach ($zone as $z): ?>
-                <option value="<?= htmlspecialchars($z['Zona']) ?>"><?= htmlspecialchars($z['Zona']) ?></option>
+                <option value="<?= htmlspecialchars($z['Zona'] ?? '') ?>"><?= htmlspecialchars($z['Zona'] ?? '') ?></option>
               <?php endforeach; ?>
             </select>
           </div>

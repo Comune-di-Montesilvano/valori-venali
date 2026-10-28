@@ -37,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
         $Periodo = trim($Periodo);
 
         // Seconda riga: intestazione colonne CSV
-        $struttura  = fgetcsv($handle, 3000, ';');
+        // escape '' (RFC 4180, futuro default PHP): i CSV OMI non usano il backslash
+        $struttura  = fgetcsv($handle, 3000, ';', '"', '');
         if (!$struttura) {
             $messaggio = 'Il file CSV sembra vuoto o non valido.';
             $tipoMsg   = 'danger';
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
             $pdo->beginTransaction();
 
             try {
-                while (($data = fgetcsv($handle, 3000, ';')) !== false) {
+                while (($data = fgetcsv($handle, 3000, ';', '"', '')) !== false) {
                     $colonne = [];
                     $valori  = [];
                     foreach ($struttura as $idx => $campo) {
@@ -164,7 +165,7 @@ include __DIR__ . '/../layout/header.php';
               <tbody>
                 <?php foreach ($periodi as $p): ?>
                 <tr>
-                  <td class="ps-3 fw-semibold"><?= htmlspecialchars($p['Periodo']) ?></td>
+                  <td class="ps-3 fw-semibold"><?= htmlspecialchars($p['Periodo'] ?? '') ?></td>
                   <td class="text-center">
                     <span class="badge bg-light text-dark border">
                       <?= number_format($p['n_record']) ?>
@@ -172,9 +173,9 @@ include __DIR__ . '/../layout/header.php';
                   </td>
                   <td>
                     <form method="post" action="<?= APP_URL ?>/admin/importa_omi.php"
-                          onsubmit="return confirm('Eliminare tutti i record del periodo «<?= htmlspecialchars(addslashes($p['Periodo'])) ?>»?')">
+                          onsubmit="return confirm('Eliminare tutti i record del periodo «<?= htmlspecialchars(addslashes($p['Periodo'] ?? '')) ?>»?')">
                       <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-                      <input type="hidden" name="elimina_periodo" value="<?= htmlspecialchars($p['Periodo']) ?>">
+                      <input type="hidden" name="elimina_periodo" value="<?= htmlspecialchars($p['Periodo'] ?? '') ?>">
                       <button type="submit" class="btn btn-sm btn-outline-danger w-100">🗑 Elimina</button>
                     </form>
                   </td>

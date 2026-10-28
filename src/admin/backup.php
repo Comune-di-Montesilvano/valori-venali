@@ -287,7 +287,7 @@ include __DIR__ . '/../layout/header.php';
               <div class="small text-muted mb-1">Copertura temporale</div>
               <?php if ($primoPeriodo && $ultimoPeriodo): ?>
                 <span class="badge bg-info text-dark">
-                  <?= htmlspecialchars($primoPeriodo['Periodo']) ?> → <?= htmlspecialchars($ultimoPeriodo['Periodo']) ?>
+                  <?= htmlspecialchars($primoPeriodo['Periodo'] ?? '') ?> → <?= htmlspecialchars($ultimoPeriodo['Periodo'] ?? '') ?>
                 </span>
               <?php else: ?>
                 <span class="text-muted small">Nessun dato</span>
