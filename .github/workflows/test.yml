@@ -1,6 +1,6 @@
 name: Test
 
-# Required check del ruleset di master ("PHP Lint", "Docker Build Test": nomi
+# Required check del ruleset di master ("PHP Lint", "PHP Tests", "Docker Build Test": nomi
 # job invariati). Girano sulla PR e in merge queue (merge_group) sul commit
 # che verrà unito. Niente trigger push su master: il commit è già stato
 # testato in coda; il rebuild di :latest vive in release.yml.
@@ -42,6 +42,42 @@ jobs:
       - name: Syntax check (Lint)
         run: |
           find src -name "*.php" -print0 | xargs -0 -n1 php -l
+
+  # Analisi statica (PHPStan livello 8) e test della formula e del parser CSV
+  # (PHPUnit, con input casuali a seme fisso). Composer solo qui: l'immagine
+  # non contiene vendor/ né tests/.
+  php-tests:
+    name: PHP Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          tools: composer
+          coverage: none
+
+      - name: Composer install (dal lockfile)
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Composer audit
+        run: composer audit --locked
+
+      - name: PHPStan
+        run: composer stan
+
+      - name: PHPUnit
+        run: composer test
 
   docker-build:
     name: Docker Build Test

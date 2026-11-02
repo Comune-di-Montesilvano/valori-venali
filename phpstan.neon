@@ -1,0 +1,27 @@
+# Analisi statica (check "PHP Tests" in test.yml). Livello 8: tipi e null
+# controllati; le deprecation PHP 8.5 su null (htmlspecialchars, chiavi di
+# array) sono la stessa famiglia di errori.
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    # Le pagine includono config.php a runtime: qui lo si carica per far
+    # conoscere a PHPStan le costanti (ROOT_PATH, APP_IS_TAG...).
+    bootstrapFiles:
+        - src/includes/config.php
+    # Valori da variabili d'ambiente: non vanno trattati come fissi
+    dynamicConstantNames:
+        - DB_HOST
+        - DB_PORT
+        - DB_NAME
+        - DB_USER
+        - DB_PASS
+        - APP_URL
+        - APP_SECRET
+        - COMUNE_NOME
+        - COMUNE_PROVINCIA
+        - GITHUB_URL
+        - APP_VERSION
+        - APP_REVISION
+        - APP_IS_TAG

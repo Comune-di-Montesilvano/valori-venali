@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     if (login($username, $password)) {
-        $next = filter_var($_GET['next'] ?? '', FILTER_SANITIZE_URL);
+        $next = (string) filter_var($_GET['next'] ?? '', FILTER_SANITIZE_URL);
         // Accetta solo redirect interni
         if (str_starts_with($next, '/')) {
             header('Location: ' . APP_URL . $next);
@@ -44,7 +44,7 @@ include __DIR__ . '/../layout/header.php';
           </div>
         <?php endif; ?>
 
-        <form method="post" action="<?= APP_URL ?>/admin/login.php<?= isset($_GET['next']) ? '?next=' . urlencode($_GET['next']) : '' ?>" novalidate>
+        <form method="post" action="<?= APP_URL ?>/admin/login.php<?= isset($_GET['next']) ? '?next=' . htmlspecialchars(urlencode((string) $_GET['next'])) : '' ?>" novalidate>
           <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
 
           <div class="mb-3">

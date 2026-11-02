@@ -6,6 +6,7 @@
 require_once __DIR__ . '/db.php';
 
 class Settings {
+    /** @var array<string, string|null> */
     private static array $cache = [];
 
     /**
@@ -43,7 +44,7 @@ class Settings {
     /**
      * Ottiene il valore di un'impostazione
      */
-    public static function get(string $key, $default = null) {
+    public static function get(string $key, mixed $default = null): mixed {
         if (empty(self::$cache)) {
             self::load();
         }

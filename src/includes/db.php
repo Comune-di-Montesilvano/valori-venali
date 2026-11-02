@@ -33,15 +33,23 @@ class DB {
 
     /**
      * Esegue una query con prepared statement e restituisce tutti i risultati
+     *
+     * @param  list<mixed> $params
+     * @return list<array<string, mixed>>
      */
     public static function query(string $sql, array $params = []): array {
         $stmt = self::get()->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $stmt->fetchAll();
+        return $rows;
     }
 
     /**
      * Esegue una query e restituisce una singola riga
+     *
+     * @param  list<mixed> $params
+     * @return array<string, mixed>|null
      */
     public static function queryOne(string $sql, array $params = []): ?array {
         $stmt = self::get()->prepare($sql);
@@ -52,6 +60,8 @@ class DB {
 
     /**
      * Esegue INSERT/UPDATE/DELETE e restituisce il numero di righe affected
+     *
+     * @param list<mixed> $params
      */
     public static function execute(string $sql, array $params = []): int {
         $stmt = self::get()->prepare($sql);
@@ -63,6 +73,6 @@ class DB {
      * Restituisce l'ultimo ID inserito
      */
     public static function lastInsertId(): string {
-        return self::get()->lastInsertId();
+        return (string) self::get()->lastInsertId();
     }
 }

@@ -21,6 +21,10 @@ if (!is_dir($uploadsDir)) {
 const UPLOAD_EXT_LOGO    = ['png', 'jpg', 'jpeg', 'webp'];
 const UPLOAD_EXT_FAVICON = ['png', 'ico'];
 
+/**
+ * @param array{name: string, tmp_name: string} $file    voce di $_FILES
+ * @param list<string>                         $allowed estensioni ammesse
+ */
 function uploadExt(array $file, array $allowed): ?string {
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowed, true)) {

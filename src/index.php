@@ -6,6 +6,7 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/calcolo.php';
 
 startSecureSession();
 seedAdmin();
@@ -23,7 +24,7 @@ $erroreCalcolo = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
     $foglio          = trim($_POST['foglio_catastale'] ?? '');
     $destinazione    = trim($_POST['destinazione'] ?? '');
-    $superficie      = (float) str_replace(',', '.', $_POST['superficie'] ?? '0');
+    $superficie      = parseSuperficie((string) ($_POST['superficie'] ?? '0'));
     $id_abbattimento = isset($_POST['id_abbattimento']) && $_POST['id_abbattimento'] !== ''
       ? (int) $_POST['id_abbattimento']
       : null;
@@ -52,8 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
         // Trova valore OMI
         $valore_omi = null;
         if ($foglio_row && $dest_row) {
-            $valori_map = [1 => 'Compr_min', 2 => 'Compr_min', 3 => 'Compr_max'];
-            // Usa media tra min e max per valore medio
             $omi_row = DB::queryOne(
                 'SELECT Compr_min, Compr_max, Zona, Descr_Tipologia FROM valori_omi
                   WHERE Zona = ? AND Cod_Tip = ? AND Stato = ? AND Periodo = ?
@@ -62,10 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
             );
 
             if ($omi_row) {
-                $val_type = (int)$dest_row['Valore'];
-                if ($val_type === 1)      $valore_omi = $omi_row['Compr_min'];
-                elseif ($val_type === 3)  $valore_omi = $omi_row['Compr_max'];
-                else                      $valore_omi = ($omi_row['Compr_min'] + $omi_row['Compr_max']) / 2;
+                $valore_omi = valoreOmi($omi_row, (int) $dest_row['Valore']);
             }
         }
 
@@ -88,21 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
             $oneri_adattamento_check = isset($_POST['oneri_adattamento']);
             
             $coeff_dest = (float) $dest_row['coefficiente_destinazione'];
-          $coeff_abb  = $abb_row ? (float) $abb_row['valore'] : 1.0;
-            
-            // Logica Montesilvano: VMR è il 20% del valore OMI
-            $vmr = $valore_omi * 0.2;
-            
-            $valore_unitario = $vmr * $coeff_dest * $coeff_abb;
-            
-            // Detrazione oneri adattamento (5%)
-            $sconto_oneri = 0;
-            if ($oneri_adattamento_check) {
-                $sconto_oneri = $valore_unitario * 0.05;
-                $valore_unitario -= $sconto_oneri;
-            }
+            $coeff_abb  = $abb_row ? (float) $abb_row['valore'] : 1.0;
 
-            $valore_totale = $valore_unitario * $superficie;
+            // VMR 20% del valore OMI, coefficienti, oneri di adattamento (5%)
+            $calcolo = calcolaValoreVenale($valore_omi, $coeff_dest, $coeff_abb, $superficie, $oneri_adattamento_check);
 
             $risultato = [
                 'periodo'            => $periodo,
@@ -113,14 +98,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calcola'])) {
                 'destinazione'       => $destinazione,
                 'superficie'         => $superficie,
                 'valore_omi'         => $valore_omi,
-                'vmr'                => $vmr,
+                'vmr'                => $calcolo['vmr'],
                 'coeff_dest'         => $coeff_dest,
                 'coeff_abb'          => $coeff_abb,
                 'desc_abb'           => $abb_row['descrizione'] ?? 'Non selezionato',
                 'oneri_adattamento'  => $oneri_adattamento_check,
-                'sconto_oneri'       => $sconto_oneri,
-                'valore_unitario'    => $valore_unitario,
-                'valore_totale'      => $valore_totale,
+                'sconto_oneri'       => $calcolo['sconto_oneri'],
+                'valore_unitario'    => $calcolo['valore_unitario'],
+                'valore_totale'      => $calcolo['valore_totale'],
             ];
         }
     }
@@ -255,7 +240,7 @@ include __DIR__ . '/layout/header.php';
                 <option value="<?= (int)$a['id_coefficiente'] ?>"
                   <?= (($_POST['id_abbattimento'] ?? '') == $a['id_coefficiente']) ? 'selected' : '' ?>>
                   <?= htmlspecialchars($a['descrizione']) ?>
-                  (coeff. <?= number_format($a['valore'], 2) ?>)
+                  (coeff. <?= htmlspecialchars(number_format($a['valore'], 2)) ?>)
                 </option>
               <?php endforeach; ?>
             </select>
@@ -307,7 +292,7 @@ include __DIR__ . '/layout/header.php';
                 <div>
                   <div class="small opacity-75">Valore Venale Stimato</div>
                   <div class="fw-bold" style="font-size:2.4rem; letter-spacing:-.02em;">
-                    <?= number_format($risultato['valore_totale'], 2, ',', '.') ?> €
+                    <?= htmlspecialchars(number_format($risultato['valore_totale'], 2, ',', '.')) ?> €
                   </div>
                 </div>
             </div>
@@ -320,9 +305,9 @@ include __DIR__ . '/layout/header.php';
           <hr style="border-color:rgba(255,255,255,.3)">
           <div class="row g-2 small">
             <div class="col-6 opacity-75">Valore unitario</div>
-            <div class="col-6 text-end fw-semibold"><?= number_format($risultato['valore_unitario'], 2, ',', '.') ?> €/m²</div>
+            <div class="col-6 text-end fw-semibold"><?= htmlspecialchars(number_format($risultato['valore_unitario'], 2, ',', '.')) ?> €/m²</div>
             <div class="col-6 opacity-75">Superficie</div>
-            <div class="col-6 text-end fw-semibold"><?= number_format($risultato['superficie'], 2, ',', '.') ?> m²</div>
+            <div class="col-6 text-end fw-semibold"><?= htmlspecialchars(number_format($risultato['superficie'], 2, ',', '.')) ?> m²</div>
           </div>
         </div>
       </div>
@@ -355,27 +340,27 @@ include __DIR__ . '/layout/header.php';
               </tr>
               <tr>
                 <td class="text-muted ps-3">Valore OMI di riferimento</td>
-                <td class="fw-semibold text-end"><?= number_format($risultato['valore_omi'], 2, ',', '.') ?> €/m²</td>
+                <td class="fw-semibold text-end"><?= htmlspecialchars(number_format($risultato['valore_omi'], 2, ',', '.')) ?> €/m²</td>
               </tr>
               <tr>
                 <td class="text-muted ps-3">VMR (20% del Valore OMI)</td>
-                <td class="fw-semibold text-end"><?= number_format($risultato['vmr'], 2, ',', '.') ?> €/m²</td>
+                <td class="fw-semibold text-end"><?= htmlspecialchars(number_format($risultato['vmr'], 2, ',', '.')) ?> €/m²</td>
               </tr>
               <tr>
                 <td class="text-muted ps-3">Coefficiente destinazione (IDU)</td>
-                <td class="fw-semibold text-end"><?= number_format($risultato['coeff_dest'], 4, ',', '.') ?></td>
+                <td class="fw-semibold text-end"><?= htmlspecialchars(number_format($risultato['coeff_dest'], 4, ',', '.')) ?></td>
               </tr>
               <tr>
                 <td class="text-muted ps-3">Stato conservativo (CA, opzionale)</td>
                 <td class="fw-semibold text-end">
                     <?= htmlspecialchars($risultato['desc_abb']) ?><br>
-                    <span class="small text-muted">× <?= number_format($risultato['coeff_abb'], 2, ',', '.') ?></span>
+                    <span class="small text-muted">× <?= htmlspecialchars(number_format($risultato['coeff_abb'], 2, ',', '.')) ?></span>
                 </td>
               </tr>
               <?php if ($risultato['oneri_adattamento']): ?>
                 <tr class="table-warning">
                   <td class="text-muted ps-3 font-italic">Oneri adattamento (-5%)</td>
-                  <td class="text-danger text-end fw-semibold">- <?= number_format($risultato['sconto_oneri'], 2, ',', '.') ?> €/m²</td>
+                  <td class="text-danger text-end fw-semibold">- <?= htmlspecialchars(number_format($risultato['sconto_oneri'], 2, ',', '.')) ?> €/m²</td>
                 </tr>
               <?php endif; ?>
             </tbody>
@@ -388,7 +373,7 @@ include __DIR__ . '/layout/header.php';
             × CA]
             <?= $risultato['oneri_adattamento'] ? ' - 5%' : '' ?>
             × Superfic. =
-            <strong><?= number_format($risultato['valore_totale'], 2, ',', '.') ?> €</strong>
+            <strong><?= htmlspecialchars(number_format($risultato['valore_totale'], 2, ',', '.')) ?> €</strong>
           </small>
         </div>
       </div>

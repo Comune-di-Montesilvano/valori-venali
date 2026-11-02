@@ -37,7 +37,7 @@ if (!$appVersion) {
         } else {
             $gitBranch   = @shell_exec('git rev-parse --abbrev-ref HEAD 2>/dev/null');
             $gitSha      = @shell_exec('git rev-parse --short HEAD 2>/dev/null');
-            $appVersion  = trim($gitBranch) . '-' . trim($gitSha);
+            $appVersion  = trim((string) $gitBranch) . '-' . trim((string) $gitSha);
             $appRevision = @shell_exec('git rev-parse HEAD 2>/dev/null'); // Full SHA for links
             $appIsTag    = false;
         }
@@ -45,7 +45,7 @@ if (!$appVersion) {
 }
 
 define('APP_VERSION',  $appVersion  ?: 'dev-local');
-define('APP_REVISION', trim($appRevision) ?: 'master');
+define('APP_REVISION', trim((string) $appRevision) ?: 'master');
 define('APP_IS_TAG',   $appIsTag);
 
 // SEO
