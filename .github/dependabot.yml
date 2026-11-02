@@ -17,7 +17,7 @@ updates:
     directories:
       - "/docker/php"
       - "/docker/db"
-      - "/.github/semgrep"
+      - "/docker/semgrep"
     schedule:
       interval: daily
       time: "01:00"
