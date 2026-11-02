@@ -16,7 +16,7 @@ Solo l'ultima versione taggata (`vX.Y.Z`) riceve fix di sicurezza. Nessun suppor
 
 ## Cosa aspettarsi
 
-- Conferma di ricezione entro qualche giorno lavorativo.
+- Conferma di ricezione entro 14 giorni (di norma qualche giorno lavorativo), poi aggiornamenti sullo stato fino alla correzione.
 - Nessun bug bounty: il progetto è software libero per la PA, non un prodotto commerciale.
 - L'immagine Docker è scansionata con Trivy (config + vulnerabilità note) ad ogni build (bloccante su HIGH/CRITICAL con fix), risultati nella tab [Security](https://github.com/Comune-di-Montesilvano/valori-venali/security).
 

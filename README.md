@@ -1,6 +1,7 @@
 # 🏗️ Valori Venali Aree Fabbricabili
 ![Test](https://github.com/Comune-di-Montesilvano/valori-venali/actions/workflows/test.yml/badge.svg)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Comune-di-Montesilvano/valori-venali/badge)](https://scorecard.dev/viewer/?uri=github.com/Comune-di-Montesilvano/valori-venali)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16193/badge)](https://www.bestpractices.dev/projects/16193)
 
 Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbricabili**, basato sui valori OMI (Osservatorio del Mercato Immobiliare) dell'Agenzia delle Entrate.
 
@@ -102,6 +103,32 @@ Formato atteso:
 Zona;Cod_Tip;Descr_Tipologia;Stato;Compr_min;Compr_max
 ...
 ```
+
+## 🔌 API JSON
+
+`GET /api_omi.php` restituisce il valore venale unitario (€/m²) di un foglio catastale, calcolato con la stessa formula del calcolatore (`src/includes/calcolo.php`) sull'ultimo periodo OMI disponibile. Sola lettura, nessuna autenticazione, CORS aperto.
+
+| Parametro | Obbligatorio | Descrizione |
+|-----------|--------------|-------------|
+| `foglio` | sì | Foglio catastale (mappato su una zona OMI in Admin → Fogli OMI) |
+| `destinazione` | sì, oppure `id_destinazione` | Zona urbanistica PRG (es. `B1`) |
+| `id_destinazione` | in alternativa | ID della destinazione urbanistica |
+| `id_abbattimento` | no | ID del coefficiente di stato conservativo; default da impostazioni |
+| `oneri_adattamento` | no | `1` = deduzione del 5% per oneri di adattamento |
+
+Esempio: `/api_omi.php?foglio=10&destinazione=B1`
+
+```json
+{
+  "PERIODO": "2025-2", "VALORE": 186.62, "VALORE_RISCATTO": 186.62,
+  "ZONA_OMI": "B1", "DESTINAZIONE_URBANISTICA": "B1", "VALORE_BASE_OMI": 1272.5,
+  "COEFFICIENTE_DESTINAZIONE": 0.7333, "COEFFICIENTE_ABBATTIMENTO": 1,
+  "MOLTIPLICATORE_ABBATTIMENTO": 1, "MOLTIPLICATORE_RIDUZIONE": 1,
+  "ONERI_ADATTAMENTO": false
+}
+```
+
+`VALORE` = VMR (20% del valore OMI) × coeff. destinazione × coeff. abbattimento [− 5%]; `VALORE_RISCATTO` = `VALORE` × moltiplicatori configurati. Errori: `{"error": "..."}` (HTTP 400 se manca `foglio`); `0` se non ci sono valori OMI per la zona. Da v2.6.0 il valore OMI medio non è più arrotondato all'intero.
 
 ## 🐳 Comandi Docker Utili
 
