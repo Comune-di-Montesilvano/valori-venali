@@ -121,6 +121,15 @@ jobs:
           image=$(sed -n 's/^FROM //p' .github/semgrep/Dockerfile)
           docker run --rm -v "$PWD:/src" -w /src "$image"             semgrep scan --config p/php --config p/security-audit               --metrics=off --error --exclude vendor --exclude tests               --sarif-output=semgrep.sarif --text src
 
+      # Il SARIF contiene anche i risultati marcati nosemgrep (suppressions
+      # "inSource"), che code scanning ignora e aprirebbe come alert: via.
+      - name: Togli dal SARIF i risultati soppressi
+        if: always() && hashFiles('semgrep.sarif') != ''
+        run: |
+          jq '.runs |= map(.results |= map(select((.suppressions // []) | length == 0)))' \
+            semgrep.sarif > semgrep.filtered.sarif
+          mv semgrep.filtered.sarif semgrep.sarif
+
       - name: Upload SARIF
         if: always() && hashFiles('semgrep.sarif') != ''
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
