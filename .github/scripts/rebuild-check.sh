@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # Rebuild giornaliero di :latest (release.yml, schedule e dry_run).
 #
-# Target di :latest = ultimo tag vX.Y.Z + il prefisso più lungo di soli commit
-# Dependabot che lo seguono su master. Lavoro umano non taggato non va MAI su
-# :latest; i bump Dependabot arrivati dopo un commit umano restano "in attesa
-# di tag" (pending_deps, release.yml apre una issue).
+# Target di :latest = ultimo tag vX.Y.Z + i commit Dependabot che lo seguono su
+# master, fino al primo commit umano non rilasciato. Contano solo i commit che
+# toccano l'immagine (IMAGE_PATHS):
+#   - umano che non tocca l'immagine (CI, compose, docs, initdb): non blocca;
+#   - Dependabot che non tocca l'immagine (Action, compose, docker/db): non
+#     sposta il target → nessun rebuild per un'immagine identica;
+#   - umano che tocca l'immagine: lavoro non taggato, non va MAI su :latest; i
+#     bump Dependabot dell'immagine arrivati dopo restano "in attesa di tag"
+#     (pending_deps, release.yml apre una issue).
+# Un target oltre un commit umano neutro lo include: non cambia l'immagine.
 #
 # Cause di rebuild, controllate sull'immagine :latest attuale (per digest):
 #   a. la label org.opencontainers.image.revision è diversa dal target
@@ -37,7 +43,11 @@ tag_commit=$(git rev-list -n1 "$last_tag")
 target=$tag_commit
 human=0
 pending=0
+# Cosa finisce nell'immagine app (build context di docker/php/Dockerfile).
+IMAGE_PATHS=(src docker/php package.json package-lock.json .dockerignore)
+touches_image() { [[ -n "$(git diff-tree --no-commit-id --name-only -r "$1" -- "${IMAGE_PATHS[@]}")" ]]; }
 while read -r sha author; do
+  touches_image "$sha" || continue
   if [[ "$author" == "dependabot[bot]" ]]; then
     if ((human == 0)); then target=$sha; else pending=$((pending + 1)); fi
   else
@@ -135,7 +145,7 @@ fi
   echo "Ultimo tag: \`$last_tag\` · target: \`${target:0:7}\` (\`$version\`) · master: \`$(git rev-parse --short "$MAIN_REF")\`"
   if ((human > 0)); then
     echo
-    echo "$human commit non Dependabot dopo \`$last_tag\`: non entrano in latest senza un nuovo tag."
+    echo "$human commit umani che toccano l'immagine dopo \`$last_tag\`: non entrano in latest senza un nuovo tag."
   fi
   if ((pending > 0)); then
     echo
