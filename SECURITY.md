@@ -29,3 +29,13 @@ Le immagini su `ghcr.io/comune-di-montesilvano/valori-venali` sono firmate con c
 ```
 
 Identità attesa: `https://github.com/Comune-di-Montesilvano/valori-venali/.github/workflows/release.yml@refs/(tags/v*|heads/master)`, issuer `https://token.actions.githubusercontent.com`.
+
+Verifica automatica a ogni avvio dello stack: `VERIFY_IMAGES=true` nel `.env` (o nelle variabili dello stack Portainer). Il servizio `verify-image` del `docker-compose.yml` controlla la firma di `:latest` con la stessa identità e, se non è valida, l'app non parte.
+
+Ogni tag `vX.Y.Z` ha una [GitHub Release](https://github.com/Comune-di-Montesilvano/valori-venali/releases) con SBOM e bundle Sigstore di provenance e SBOM, verificabili anche offline:
+
+```sh
+gh attestation verify oci://ghcr.io/comune-di-montesilvano/valori-venali:vX.Y.Z \
+  -R Comune-di-Montesilvano/valori-venali \
+  --bundle valori-venali-vX.Y.Z.provenance.sigstore.json
+```

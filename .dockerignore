@@ -3,3 +3,6 @@
 .env
 node_modules
 src/uploads
+vendor
+.phpunit.cache
+tests

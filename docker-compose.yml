@@ -1,4 +1,42 @@
+# Immagine dell'app in un punto solo: la usano app e verify-image.
+x-app-image: &app_image ghcr.io/comune-di-montesilvano/valori-venali:latest
+
 services:
+
+  # Verifica della firma cosign dell'immagine app prima di avviarla (opt-in:
+  # VERIFY_IMAGES=true nel .env / nelle variabili dello stack Portainer).
+  # Firma valida solo se fatta da release.yml di questo repo (tag v* o rebuild
+  # da master); se manca o non è valida l'app NON parte. Spento = esce subito
+  # con successo. Stessa verifica di .github/scripts/verify-image.sh, senza le
+  # attestazioni gh. Serve accesso in uscita a ghcr.io e a Sigstore.
+  verify-image:
+    # Variante -dev: contiene una shell (busybox) per il controllo opt-in.
+    image: ghcr.io/sigstore/cosign/cosign:v3.1.4-dev@sha256:8af1a2cf9fba903fdfc6bdafdc25f7b13ef34ad722095543ea787fb96f7240c1
+    container_name: valori_venali_verify
+    restart: "no"
+    environment:
+      VERIFY_IMAGES: ${VERIFY_IMAGES:-false}
+      IMAGE: *app_image
+      IDENTITY: '^https://github.com/Comune-di-Montesilvano/valori-venali/\.github/workflows/release\.yml@refs/(tags/v.*|heads/master)$$'
+      HOME: /tmp
+    entrypoint: [ "/busybox/sh", "-c" ]
+    command:
+      - |
+        if [ "$$VERIFY_IMAGES" != "true" ]; then
+          echo "verify-image: VERIFY_IMAGES non attivo, verifica saltata"; exit 0
+        fi
+        cosign verify "$$IMAGE" \
+          --certificate-identity-regexp "$$IDENTITY" \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          > /dev/null && echo "verify-image: firma valida per $$IMAGE"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ ALL ]
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - valori_net
 
   db:
     # Digest fissato, aggiornato da Dependabot (docker-compose)
@@ -32,12 +70,14 @@ services:
 
   app:
     # Production: use the prebuilt image from GHCR by default
-    image: ghcr.io/comune-di-montesilvano/valori-venali:latest
+    image: *app_image
     container_name: valori_venali_app
     restart: always
     depends_on:
       db:
         condition: service_healthy
+      verify-image:
+        condition: service_completed_successfully
     environment:
       DB_HOST: db
       DB_PORT: ${DB_PORT:-3306}

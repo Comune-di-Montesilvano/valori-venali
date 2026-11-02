@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/omi_csv.php';
 
 requireAuth();
 
@@ -28,13 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
 
     if ($handle) {
         // Prima riga: "- Semestre - AAAA" o simile — estraiamo il periodo
-        $headerLine = fgets($handle);
-        $parti      = explode('-', $headerLine);
-        $Periodo    = isset($parti[1]) ? trim($parti[1]) : 'Sconosciuto';
-        if (isset($parti[2]) && !str_starts_with(trim(strtolower($parti[2])), 'elaborazione')) {
-            $Periodo = trim($parti[1]) . '-' . trim($parti[2]);
-        }
-        $Periodo = trim($Periodo);
+        $Periodo = periodoDaIntestazione((string) fgets($handle));
 
         // Seconda riga: intestazione colonne CSV
         // escape '' (RFC 4180, futuro default PHP): i CSV OMI non usano il backslash
@@ -56,18 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_csv']) && $_FIL
 
             try {
                 while (($data = fgetcsv($handle, 3000, ';', '"', '')) !== false) {
-                    $colonne = [];
-                    $valori  = [];
-                    foreach ($struttura as $idx => $campo) {
-                        $campo = trim($campo);
-                        if (in_array($campo, $campiDB, true)) {
-                            $colonne[] = "`$campo`";
-                            $valori[]  = isset($data[$idx]) ? trim($data[$idx]) : null;
-                        }
-                    }
+                    [$colonne, $valori] = mappaRigaOmi($struttura, $data, $campiDB);
                     if (!empty($colonne)) {
                         $placeholders = implode(',', array_fill(0, count($valori), '?'));
-                        $sql = 'INSERT INTO valori_omi (`Periodo`,' . implode(',', $colonne)
+                        // Nomi colonna dalla whitelist $campiDB (schema), mai dal CSV
+                        $sql = 'INSERT INTO valori_omi (`Periodo`,`' . implode('`,`', $colonne) . '`'
                              . ") VALUES (?,{$placeholders})";
                         DB::execute($sql, array_merge([$Periodo], $valori));
                         $caricati++;
@@ -106,7 +94,7 @@ include __DIR__ . '/../layout/header.php';
 
 <?php if ($messaggio): ?>
   <div class="alert alert-<?= $tipoMsg ?> alert-dismissible fade show" role="alert">
-    <?= $messaggio ?>
+    <?= $messaggio /* HTML costruito sopra, dati già con htmlspecialchars */ ?> <?php // nosemgrep: php.lang.security.injection.echoed-request.echoed-request ?>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
 <?php endif; ?>

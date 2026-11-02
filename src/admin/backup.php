@@ -47,21 +47,23 @@ if (isset($_GET['download'])) {
     echo "-- =================================================================\n\n";
     echo "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
 
+    // $tableName è validato contro $tables (sopra): niente input libero in SQL né nel
+    // dump, che esce come file .sql scaricato, non come HTML. Da qui i nosemgrep.
     foreach ($tablesToExport as $tableName) {
-        echo "-- ─── Tabella: $tableName ─────────────────────────────────\n";
+        echo "-- ─── Tabella: $tableName ─────────────────────────────────\n"; // nosemgrep: php.lang.security.injection.echoed-request.echoed-request
 
         // Struttura tabella
-        $create = DB::queryOne("SHOW CREATE TABLE `$tableName`");
-        echo "DROP TABLE IF EXISTS `$tableName`;\n";
-        echo $create['Create Table'] . ";\n\n";
+        $create = DB::queryOne("SHOW CREATE TABLE `$tableName`"); // nosemgrep: php.lang.security.injection.tainted-sql-string.tainted-sql-string
+        echo "DROP TABLE IF EXISTS `$tableName`;\n"; // nosemgrep: php.lang.security.injection.echoed-request.echoed-request, php.lang.security.injection.tainted-sql-string.tainted-sql-string
+        echo ($create['Create Table'] ?? '') . ";\n\n"; // nosemgrep: php.lang.security.injection.echoed-request.echoed-request
 
         // Dati
-        $rows = DB::query("SELECT * FROM `$tableName`");
+        $rows = DB::query("SELECT * FROM `$tableName`"); // nosemgrep: php.lang.security.injection.tainted-sql-string.tainted-sql-string
         if (!empty($rows)) {
             $columns = array_keys($rows[0]);
             $colList = implode('`, `', $columns);
 
-            echo "INSERT INTO `$tableName` (`$colList`) VALUES\n";
+            echo "INSERT INTO `$tableName` (`$colList`) VALUES\n"; // nosemgrep: php.lang.security.injection.echoed-request.echoed-request, php.lang.security.injection.tainted-sql-string.tainted-sql-string
             $lastIdx = count($rows) - 1;
             foreach ($rows as $idx => $row) {
                 $values = [];
@@ -100,9 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ripristina'])) {
         $tipoMsg   = 'danger';
     } else {
         $tmpFile = $_FILES['backup_file']['tmp_name'];
-        $sql     = file_get_contents($tmpFile);
+        $sql     = (string) file_get_contents($tmpFile);
 
-        if (empty(trim($sql))) {
+        if (trim($sql) === '') {
             $messaggio = 'Il file SQL è vuoto.';
             $tipoMsg   = 'danger';
         } else {

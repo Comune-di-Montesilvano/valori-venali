@@ -11,6 +11,8 @@ require_once __DIR__ . '/includes/settings.php';
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
 header('Content-Type: application/json; charset=utf-8');
+// Solo JSON (json_encode + Content-Type esplicito): l'eco dei parametri non è
+// interpretato come HTML, da qui i nosemgrep echoed-request.
 
 $foglio = isset($_GET['foglio']) ? trim($_GET['foglio']) : null;
 $destinazione_param = isset($_GET['destinazione']) ? trim($_GET['destinazione']) : null;
@@ -30,7 +32,7 @@ if (!$destinazione_param && !isset($_GET['id_destinazione'])) {
 $foglio_row = DB::queryOne('SELECT zona_omi FROM fogli_zone_omi WHERE foglio_catastale = ?', [$foglio]);
 
 if (!$foglio_row) {
-    echo json_encode(['error' => 'Foglio non trovato', 'foglio' => $foglio]);
+    echo json_encode(['error' => 'Foglio non trovato', 'foglio' => $foglio]); // nosemgrep: php.lang.security.injection.echoed-request.echoed-request
     exit;
 }
 
@@ -50,7 +52,7 @@ if ($destinazione_param) {
 }
 
 if (!$dati_destinazione) {
-    echo json_encode(['error' => 'Destinazione urbanistica non trovata', 'destinazione' => $destinazione_param]);
+    echo json_encode(['error' => 'Destinazione urbanistica non trovata', 'destinazione' => $destinazione_param]); // nosemgrep: php.lang.security.injection.echoed-request.echoed-request
     exit;
 }
 
@@ -108,7 +110,7 @@ $riduzione    = (float) Settings::get('PERCENTUALE_VALORE_VENALE', 1);
 $valore_finale = round($valore * 0.2 * $coefficiente_destinazione * $coefficiente_abbattimento, 2);
 $valore_riscatto = round($valore * 0.2 * $coefficiente_destinazione * $coefficiente_abbattimento * $abbattimento * $riduzione, 2);
 
-echo json_encode([
+echo json_encode([ // nosemgrep: php.lang.security.injection.echoed-request.echoed-request
     "PERIODO"                     => $dati_omi["Periodo"],
     "VALORE"                      => $valore_finale,
     "VALORE_RISCATTO"             => $valore_riscatto,

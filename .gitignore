@@ -20,3 +20,7 @@ Thumbs.db
 uploads/
 # Dipendenze npm (asset installati nel build Docker)
 node_modules/
+
+# Dipendenze Composer (solo sviluppo: test e analisi statica)
+vendor/
+.phpunit.cache/

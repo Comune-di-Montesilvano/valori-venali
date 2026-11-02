@@ -1,0 +1,21 @@
+{
+    "name": "comune-di-montesilvano/valori-venali",
+    "description": "Strumenti di sviluppo (test, analisi statica). L'immagine non usa Composer: copia solo src/.",
+    "license": "EUPL-1.2",
+    "type": "project",
+    "require": {
+        "php": ">=8.5"
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": { "php": "8.5.0" }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse --no-progress --memory-limit=1G"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2",
+        "phpunit/phpunit": "^12"
+    }
+}
