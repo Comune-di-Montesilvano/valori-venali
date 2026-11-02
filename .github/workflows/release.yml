@@ -211,6 +211,8 @@ jobs:
             rekor.sigstore.dev:443
             timestamp.sigstore.dev:443
             tuf-repo-cdn.sigstore.dev:443
+            results-receiver.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
 
       # Sorgente = tag, oppure target di latest (tag + soli commit Dependabot).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -303,12 +305,14 @@ jobs:
       # Attestazioni firmate (Sigstore) registrate su GitHub, legate al digest.
       # Verifica: .github/scripts/verify-image.sh <tag>
       - name: Attestazione provenance
+        id: att-prov
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
 
       - name: Attestazione SBOM
+        id: att-sbom
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ${{ env.IMAGE }}
@@ -322,6 +326,32 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: cosign sign --yes "$IMAGE@$DIGEST"
+
+      # Asset della GitHub Release (job github-release, solo sui tag): SBOM e
+      # bundle Sigstore delle due attestazioni, verificabili offline.
+      - name: Prepara asset release
+        if: github.ref_type == 'tag'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          PROV: ${{ steps.att-prov.outputs.bundle-path }}
+          SBOM_ATT: ${{ steps.att-sbom.outputs.bundle-path }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir release-assets
+          cp sbom.cdx.json "release-assets/valori-venali-$REF_NAME.sbom.cdx.json"
+          cp "$PROV" "release-assets/valori-venali-$REF_NAME.provenance.sigstore.json"
+          cp "$SBOM_ATT" "release-assets/valori-venali-$REF_NAME.sbom.sigstore.json"
+          echo "$IMAGE@$DIGEST" > "release-assets/valori-venali-$REF_NAME.image-digest.txt"
+          (cd release-assets && sha256sum -- * > SHA256SUMS)
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.ref_type == 'tag'
+        with:
+          name: release-assets
+          path: release-assets/
+          retention-days: 7
+          if-no-files-found: error
 
       - name: Upload Trivy results
         if: always() && steps.build.outcome == 'success'
@@ -436,3 +466,47 @@ jobs:
             echo
             echo "Motivo: $REASON"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # GitHub Release del tag, solo dopo la pubblicazione su GHCR: note generate
+  # dai PR, SBOM e bundle Sigstore (provenance SLSA + SBOM firmati) come asset.
+  # Verifica offline di un asset: gh attestation verify --bundle <file.sigstore.json>
+  github-release:
+    needs: [ setup, build-push, publish ]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            uploads.github.com:443
+            *.blob.core.windows.net:443
+            results-receiver.actions.githubusercontent.com:443
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release-assets
+
+      - name: Crea release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          TAGS: ${{ needs.setup.outputs.tags }}
+        run: |
+          set -euo pipefail
+          # "Latest" su GitHub solo se il tag è anche :latest su GHCR (tag più alto)
+          latest=false
+          [[ ",$TAGS," == *":latest,"* ]] && latest=true
+          if gh release view "$REF_NAME" -R "$REPO" >/dev/null 2>&1; then
+            gh release upload "$REF_NAME" -R "$REPO" --clobber release-assets/*
+          else
+            gh release create "$REF_NAME" -R "$REPO" --verify-tag --generate-notes \
+              --title "$REF_NAME" --latest="$latest" release-assets/*
+          fi
