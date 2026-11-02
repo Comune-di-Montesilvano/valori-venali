@@ -96,3 +96,34 @@ jobs:
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-fs
+
+  # SAST PHP (CodeQL non supporta PHP): regole p/php + p/security-audit dal
+  # registry Semgrep. Bloccante su ogni risultato; i falsi positivi si
+  # marcano nel codice con `// nosemgrep: <rule-id>` e la motivazione accanto.
+  # Immagine fissata per digest in .github/semgrep/Dockerfile (Dependabot).
+  semgrep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Semgrep (PHP)
+        run: |
+          image=$(sed -n 's/^FROM //p' .github/semgrep/Dockerfile)
+          docker run --rm -v "$PWD:/src" -w /src "$image"             semgrep scan --config p/php --config p/security-audit               --metrics=off --error --exclude vendor --exclude tests               --sarif-output=semgrep.sarif --text src
+
+      - name: Upload SARIF
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
