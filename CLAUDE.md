@@ -72,6 +72,7 @@ Valore Venale = Superficie (mq) × Valore OMI (€/mq) × Coeff. Destinazione ×
 
 - **Valore OMI:** min, medio o max in base alla configurazione della zona
 - **Montesilvano:** logica speciale → VMR = 20% del valore OMI, con deduzione opzionale costi adeguamento
+- **Unica implementazione:** `src/includes/calcolo.php` (`valoreOmi`, `calcolaValoreVenale`, `valoreRiscatto`), usata da `index.php` e `api_omi.php` — mai duplicare la formula. Medio = (min+max)/2 **senza arrotondamento** (fino a v2.5.0 l'API arrotondava all'intero). API: `oneri_adattamento=1` opzionale, `VALORE` = valore unitario €/m²
 
 ## Database
 

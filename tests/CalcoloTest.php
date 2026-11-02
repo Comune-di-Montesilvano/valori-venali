@@ -104,4 +104,11 @@ final class CalcoloTest extends TestCase
     {
         self::assertEqualsWithDelta($atteso, parseSuperficie($input), self::DELTA);
     }
+
+    public function testValoreRiscatto(): void
+    {
+        // unitario 180 × 0,9 × 0,5 = 81; moltiplicatori a 1 = invariato
+        self::assertEqualsWithDelta(81.0, valoreRiscatto(180.0, 0.9, 0.5), self::DELTA);
+        self::assertEqualsWithDelta(180.0, valoreRiscatto(180.0, 1.0, 1.0), self::DELTA);
+    }
 }

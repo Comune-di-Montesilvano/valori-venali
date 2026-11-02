@@ -7,6 +7,7 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/settings.php';
+require_once __DIR__ . '/includes/calcolo.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
@@ -89,26 +90,22 @@ if (!$dati_coefficiente) {
     $coefficiente_abbattimento = (float) $dati_coefficiente['valore'];
 }
 
-// 6. Determina il valore da usare (min, max, medio)
-switch ($tipo_valore) {
-    case 1:
-        $valore = (float) $dati_omi['Compr_min'];
-        break;
-    case 3:
-        $valore = (float) $dati_omi['Compr_max'];
-        break;
-    case 2:
-    default:
-        $valore = round(((float) $dati_omi['Compr_min'] + (float) $dati_omi['Compr_max']) / 2, 0);
-        break;
+// 6. Formula unica (src/includes/calcolo.php), la stessa del calcolatore.
+//    Valore per m² (VALORE): nessuna superficie, oneri di adattamento solo se richiesti.
+$valore = valoreOmi($dati_omi, $tipo_valore);
+if ($valore === null) {
+    echo json_encode(0);
+    exit;
 }
+$oneri_adattamento = ($_GET['oneri_adattamento'] ?? '') === '1';
+$calcolo = calcolaValoreVenale($valore, $coefficiente_destinazione, $coefficiente_abbattimento, 1.0, $oneri_adattamento);
 
 // 7. Eventuali riduzioni e abbattimenti ulteriori configurati
 $abbattimento = (float) Settings::get('ABBATTIMENTO_VALORE', 1);
 $riduzione    = (float) Settings::get('PERCENTUALE_VALORE_VENALE', 1);
 
-$valore_finale = round($valore * 0.2 * $coefficiente_destinazione * $coefficiente_abbattimento, 2);
-$valore_riscatto = round($valore * 0.2 * $coefficiente_destinazione * $coefficiente_abbattimento * $abbattimento * $riduzione, 2);
+$valore_finale   = round($calcolo['valore_unitario'], 2);
+$valore_riscatto = round(valoreRiscatto($calcolo['valore_unitario'], $abbattimento, $riduzione), 2);
 
 echo json_encode([ // nosemgrep: php.lang.security.injection.echoed-request.echoed-request
     "PERIODO"                     => $dati_omi["Periodo"],
@@ -121,5 +118,6 @@ echo json_encode([ // nosemgrep: php.lang.security.injection.echoed-request.echo
     "COEFFICIENTE_DESTINAZIONE"   => $coefficiente_destinazione,
     "COEFFICIENTE_ABBATTIMENTO"   => $coefficiente_abbattimento,
     "MOLTIPLICATORE_ABBATTIMENTO" => $abbattimento,
-    "MOLTIPLICATORE_RIDUZIONE"    => $riduzione
+    "MOLTIPLICATORE_RIDUZIONE"    => $riduzione,
+    "ONERI_ADATTAMENTO"           => $oneri_adattamento,
 ]);
