@@ -83,6 +83,15 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      # Ogni tag deve avere le sue note per gli utenti in CHANGELOG.md (criterio
+      # OpenSSF release_notes): controllo qui, prima di costruire o pubblicare
+      # qualsiasi cosa. Se manca: cancellare il tag, aggiungere la sezione, ritaggare.
+      - name: Note di rilascio nel CHANGELOG
+        if: github.ref_type == 'tag'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: .github/scripts/release-notes.sh "$REF_NAME" > /dev/null
+
       - name: Modalità di build
         id: mode
         env:
@@ -493,6 +502,23 @@ jobs:
           name: release-assets
           path: release-assets
 
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: src
+          sparse-checkout: |
+            CHANGELOG.md
+            .github/scripts/release-notes.sh
+          sparse-checkout-cone-mode: false
+
+      # Note per gli utenti dal CHANGELOG in testa, elenco delle PR generato da
+      # GitHub in coda (--generate-notes accoda alle note passate).
+      - name: Note di rilascio
+        working-directory: src
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: .github/scripts/release-notes.sh "$REF_NAME" > "$RUNNER_TEMP/notes.md"
+
       - name: Crea release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -508,5 +534,6 @@ jobs:
             gh release upload "$REF_NAME" -R "$REPO" --clobber release-assets/*
           else
             gh release create "$REF_NAME" -R "$REPO" --verify-tag --generate-notes \
+              --notes-file "$RUNNER_TEMP/notes.md" \
               --title "$REF_NAME" --latest="$latest" release-assets/*
           fi

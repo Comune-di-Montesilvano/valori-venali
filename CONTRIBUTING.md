@@ -23,7 +23,7 @@ composer stan                        # PHPStan (livello 8)
 
 ## Rilasci
 
-I tag `vX.Y.Z` (semver) li crea solo il maintainer; `release.yml` costruisce, firma e pubblica l'immagine e la GitHub Release. Le note di rilascio sono generate dalle PR.
+I tag `vX.Y.Z` (semver) li crea solo il maintainer; `release.yml` costruisce, firma e pubblica l'immagine e la GitHub Release. Prima del tag il maintainer aggiunge la sezione `## [vX.Y.Z]` in [CHANGELOG.md](CHANGELOG.md), con le modifiche e l'impatto dell'aggiornamento: diventa il testo della GitHub Release (seguito dall'elenco delle PR) e, se manca, `release.yml` si ferma prima di pubblicare.
 
 ## Licenza
 
