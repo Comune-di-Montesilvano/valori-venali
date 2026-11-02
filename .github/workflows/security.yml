@@ -100,7 +100,7 @@ jobs:
   # SAST PHP (CodeQL non supporta PHP): regole p/php + p/security-audit dal
   # registry Semgrep. Bloccante su ogni risultato; i falsi positivi si
   # marcano nel codice con `// nosemgrep: <rule-id>` e la motivazione accanto.
-  # Immagine fissata per digest in .github/semgrep/Dockerfile (Dependabot).
+  # Immagine fissata per digest in docker/semgrep/Dockerfile (Dependabot).
   semgrep:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -118,7 +118,7 @@ jobs:
 
       - name: Semgrep (PHP)
         run: |
-          image=$(sed -n 's/^FROM //p' .github/semgrep/Dockerfile)
+          image=$(sed -n 's/^FROM //p' docker/semgrep/Dockerfile)
           docker run --rm -v "$PWD:/src" -w /src "$image"             semgrep scan --config p/php --config p/security-audit               --metrics=off --error --exclude vendor --exclude tests               --sarif-output=semgrep.sarif --text src
 
       # Il SARIF contiene anche i risultati marcati nosemgrep (suppressions
