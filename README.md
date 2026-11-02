@@ -1,5 +1,6 @@
 # 🏗️ Valori Venali Aree Fabbricabili
 ![Test](https://github.com/Comune-di-Montesilvano/valori-venali/actions/workflows/test.yml/badge.svg)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Comune-di-Montesilvano/valori-venali/badge)](https://scorecard.dev/viewer/?uri=github.com/Comune-di-Montesilvano/valori-venali)
 
 Applicativo web per il calcolo della **Stima dei Valori Venali delle Aree Fabbricabili**, basato sui valori OMI (Osservatorio del Mercato Immobiliare) dell'Agenzia delle Entrate.
 
