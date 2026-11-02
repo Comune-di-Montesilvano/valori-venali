@@ -6,6 +6,9 @@
  * Valore venale = Superficie × VMR × Coeff. Destinazione × Coeff. Abbattimento
  *                 [− oneri di adattamento]
  * VMR (logica Montesilvano) = 20% del valore OMI.
+ *
+ * Unica implementazione della formula: la usano il calcolatore (index.php) e
+ * l'API JSON (api_omi.php). Non duplicarla altrove.
  */
 
 /** Quota del valore OMI che costituisce il VMR */
@@ -74,4 +77,13 @@ function calcolaValoreVenale(
         'valore_unitario' => $valoreUnitario,
         'valore_totale'   => $valoreUnitario * $superficie,
     ];
+}
+
+/**
+ * Valore di riscatto (solo API): valore unitario per i moltiplicatori
+ * configurati in impostazioni (ABBATTIMENTO_VALORE, PERCENTUALE_VALORE_VENALE).
+ */
+function valoreRiscatto(float $valoreUnitario, float $moltAbbattimento, float $moltRiduzione): float
+{
+    return $valoreUnitario * $moltAbbattimento * $moltRiduzione;
 }
