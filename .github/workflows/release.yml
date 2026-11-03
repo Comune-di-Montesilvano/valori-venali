@@ -6,7 +6,8 @@ name: Build & Push Container
 #     nuovi merge Dependabot dopo l'ultimo tag, patch Debian, CVE HIGH/CRITICAL
 #     con fix → latest + latest-YYYYMMDD (rollback). Lavoro umano non taggato
 #     non entra MAI in latest.
-# Pipeline: build → push solo per digest → Trivy bloccante → SBOM + attestazioni
+# Pipeline: build → push solo per digest → Trivy (tag: bloccante; rebuild:
+# nessuna regressione rispetto a latest) → SBOM + attestazioni
 # + firma cosign → smoke test sul digest → solo allora i tag.
 on:
   push:
@@ -54,7 +55,6 @@ jobs:
       version: ${{ steps.mode.outputs.version || steps.check.outputs.version }}
       tags: ${{ steps.mode.outputs.tags }}
       reason: ${{ steps.mode.outputs.reason || steps.check.outputs.reason }}
-      cause_c: ${{ steps.check.outputs.cause_c || 'false' }}
       pkg_refresh: ${{ steps.mode.outputs.pkg_refresh }}
     steps:
       # Traffico in uscita limitato agli host elencati. Release fallita per
@@ -194,6 +194,7 @@ jobs:
       issues: write
     outputs:
       digest: ${{ steps.build.outputs.digest }}
+      publish: ${{ steps.nonreg.outputs.publish || 'true' }}
     steps:
       - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
@@ -261,7 +262,10 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
 
-      # Bloccante sempre: CRITICAL/HIGH con fix fermano la pubblicazione.
+      # Tag vX.Y.Z: bloccante assoluto, CRITICAL/HIGH con fix fermano la pubblicazione.
+      # Rebuild di latest: gate di non regressione (step successivo). Bloccare in
+      # assoluto qui fermerebbe anche il rebuild che corregge altre CVE, per una CVE
+      # che nessun rebuild può correggere (fix non ancora nell'immagine base).
       - name: Trivy vulnerability scan
         id: trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -271,31 +275,90 @@ jobs:
           format: sarif
           output: trivy-image.sarif
           severity: CRITICAL,HIGH
-          exit-code: "1"
+          exit-code: ${{ github.ref_type == 'tag' && '1' || '0' }}
           ignore-unfixed: true
           limit-severities-for-sarif: true
           trivyignores: .trivyignore
 
-      # Rebuild partito per CVE con fix ma ancora bloccato: il fix non è ancora
-      # nell'immagine base. latest resta il precedente; la issue tiene traccia
-      # finché Dependabot non porta il fix.
+      # Rebuild: si pubblica solo se l'immagine nuova non ha CVE HIGH/CRITICAL con
+      # fix assenti dalla latest attuale (stesso pacchetto + stesso ID). Stesso
+      # binario e stesso DB dello step precedente per entrambe le immagini.
+      # Senza latest leggibile la base è vuota: ogni CVE conta (fallire chiusi).
+      - name: Trivy non regressione rispetto a latest (rebuild)
+        id: nonreg
+        if: github.ref_type != 'tag'
+        env:
+          TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
+          DIGEST: ${{ steps.build.outputs.digest }}
+          REASON: ${{ needs.setup.outputs.reason }}
+        run: |
+          set -euo pipefail
+          opts=(image --quiet --skip-db-update --scanners vuln --severity "CRITICAL,HIGH"
+            --ignore-unfixed --ignorefile .trivyignore --format json)
+          keys='[.Results[]?.Vulnerabilities[]? | "\(.PkgName) \(.VulnerabilityID)"] | unique'
+          trivy "${opts[@]}" --output "$RUNNER_TEMP/head.json" "$IMAGE@$DIGEST"
+          if docker pull --quiet "$IMAGE:latest" >/dev/null 2>&1; then
+            trivy "${opts[@]}" --output "$RUNNER_TEMP/base.json" "$IMAGE:latest"
+          else
+            echo "::warning::$IMAGE:latest non leggibile: confronto con base vuota"
+            echo '{}' > "$RUNNER_TEMP/base.json"
+          fi
+          jq -r "$keys | .[]" "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/head.txt"
+          jq -r "$keys | .[]" "$RUNNER_TEMP/base.json" > "$RUNNER_TEMP/base.txt"
+          residual=$(wc -l < "$RUNNER_TEMP/head.txt")
+          echo "residual=$([ "$residual" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          nuove=$(comm -23 "$RUNNER_TEMP/head.txt" "$RUNNER_TEMP/base.txt")
+          corrette=$(comm -13 "$RUNNER_TEMP/head.txt" "$RUNNER_TEMP/base.txt" | wc -l)
+          echo "Non regressione: nuova $residual, latest $(wc -l < "$RUNNER_TEMP/base.txt"), corrette $corrette"
+          if [[ -n "$nuove" ]]; then
+            printf '%s\n' "$nuove"
+            echo "::error::$(printf '%s\n' "$nuove" | wc -l) vulnerabilità HIGH/CRITICAL con fix nuove rispetto a latest"
+            exit 1
+          fi
+          # Rebuild per la sola causa c (CVE con fix su latest) che non ne corregge
+          # nessuna: ripubblicare darebbe ogni giorno la stessa latest con un digest nuovo.
+          if [[ "$REASON" == c:* && "$corrette" -eq 0 ]]; then
+            echo "::notice::Rebuild per CVE con fix, ma nessuna corretta: latest invariata"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Una sola issue: aperta/commentata se la pubblicazione è fermata (tag o
+      # regressione) o se la latest pubblicata ha ancora CVE con fix (fix non ancora
+      # nell'immagine base); chiusa dal primo rebuild pulito.
       - name: Issue vulnerabilità non risolvibile con un rebuild
-        if: failure() && steps.trivy.outcome == 'failure' && needs.setup.outputs.cause_c == 'true'
+        if: >-
+          always() && steps.build.outcome == 'success'
+          && (steps.trivy.outcome == 'failure' || steps.nonreg.outcome != 'skipped')
+        # Solo residui (latest pubblicata comunque): un errore di gh non deve fermare la pubblicazione.
+        continue-on-error: ${{ steps.trivy.outcome != 'failure' && steps.nonreg.outcome != 'failure' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           DIGEST: ${{ steps.build.outputs.digest }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FERMATA: ${{ steps.trivy.outcome == 'failure' || steps.nonreg.outcome == 'failure' }}
+          RESIDUAL: ${{ steps.nonreg.outputs.residual }}
         run: |
           set -euo pipefail
           TITLE="Vulnerabilità non risolvibile con un rebuild"
+          existing=$(gh issue list -R "$REPO" --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+          if [[ "$FERMATA" != "true" && "$RESIDUAL" != "true" ]]; then
+            if [[ -n "$existing" ]]; then
+              gh issue close "$existing" -R "$REPO" --comment "Rebuild senza CVE HIGH/CRITICAL con fix: chiusa da \`release.yml\` ($RUN_URL)."
+            fi
+            exit 0
+          fi
+          if [[ "$FERMATA" == "true" ]]; then
+            esito="La pubblicazione è stata fermata: è un tag di versione, oppure l'immagine ricostruita ha CVE HIGH/CRITICAL con fix che la \`latest\` pubblicata non aveva (regressione). Resta pubblicata l'immagine precedente."
+          else
+            esito="La nuova \`latest\` è stata pubblicata (nessuna regressione), ma contiene ancora CVE HIGH/CRITICAL con fix: il fix non è ancora nell'immagine base."
+          fi
           table=$(trivy image --quiet --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed \
             --ignorefile .trivyignore --format table "$IMAGE@$DIGEST" 2>&1 || true)
           body=$(printf '%s\n' \
-            "Il rebuild di \`latest\` è partito per CVE HIGH/CRITICAL con fix, ma l'immagine ricostruita ha ancora vulnerabilità bloccanti: il fix non è ancora nell'immagine base. \`latest\` è rimasto quello precedente." \
+            "$esito" \
             "" "Run: $RUN_URL" "" '```' "$table" '```' "" \
             "Si risolve con il bump Dependabot dell'immagine base; il controllo giornaliero riprova da solo.")
-          existing=$(gh issue list -R "$REPO" --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
           if [[ -n "$existing" ]]; then
             gh issue comment "$existing" -R "$REPO" --body "$body"
           else
@@ -370,9 +433,11 @@ jobs:
           category: trivy-image
 
   # App + MariaDB avviate con il digest appena firmato: se fallisce nessun tag
-  # si sposta e latest resta il precedente.
+  # si sposta e latest resta il precedente. Saltato (e con lui publish) se il
+  # rebuild per CVE non ne corregge nessuna.
   smoke:
     needs: [ setup, build-push ]
+    if: needs.build-push.outputs.publish != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
