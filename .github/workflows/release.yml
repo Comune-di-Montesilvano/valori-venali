@@ -266,10 +266,14 @@ jobs:
       # Rebuild di latest: gate di non regressione (step successivo). Bloccare in
       # assoluto qui fermerebbe anche il rebuild che corregge altre CVE, per una CVE
       # che nessun rebuild può correggere (fix non ancora nell'immagine base).
+      # DB scaricato ora, non dalla cache giornaliera (cache-trivy-YYYY-MM-DD) che
+      # Trivy tiene per buona fino a NextUpdate: può non conoscere fix che
+      # rebuild-check (DB fresco) ha già visto come causa c. Visto il 2026-11-03.
       - name: Trivy vulnerability scan
         id: trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          cache: "false"
           version: ${{ env.TRIVY_VERSION }}
           image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
           format: sarif
@@ -282,7 +286,7 @@ jobs:
 
       # Rebuild: si pubblica solo se l'immagine nuova non ha CVE HIGH/CRITICAL con
       # fix assenti dalla latest attuale (stesso pacchetto + stesso ID). Stesso
-      # binario e stesso DB dello step precedente per entrambe le immagini.
+      # binario e stesso DB (fresco, vedi step precedente) per entrambe le immagini.
       # Senza latest leggibile la base è vuota: ogni CVE conta (fallire chiusi).
       - name: Trivy non regressione rispetto a latest (rebuild)
         id: nonreg
