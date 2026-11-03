@@ -20,7 +20,7 @@
 # Nessuna causa → skip=true. Un controllo che non riesce a verificare conta
 # come causa (fallire chiusi = ricostruire): mai uno skip per un errore.
 #
-# Output (GITHUB_OUTPUT): skip, reason, target, version, pending_deps, cause_c.
+# Output (GITHUB_OUTPUT): skip, reason, target, version, pending_deps.
 #   IMAGE=ghcr.io/<owner>/valori-venali MAIN_REF=origin/master .github/scripts/rebuild-check.sh
 # Richiede docker, git (storia e tag completi), jq, trivy.
 set -euo pipefail
@@ -65,7 +65,7 @@ fi
 db_ok=true
 trivy image --download-db-only --quiet || db_ok=false
 
-a=no b=no c=no cause_c=false
+a=no b=no c=no
 ref="$IMAGE:latest"
 if ! docker pull -q "$IMAGE:latest" >/dev/null; then
   a="latest assente o non leggibile"
@@ -101,7 +101,6 @@ else
     n=$(count <<<"$ids")
     if ((n > 0)); then
       c="$n HIGH/CRITICAL con fix ($(short <<<"$ids"))"
-      cause_c=true
     fi
   else
     c="errore Trivy"
@@ -136,7 +135,6 @@ fi
   echo "target=$target"
   echo "version=$version"
   echo "pending_deps=$pending"
-  echo "cause_c=$cause_c"
 } >>"$OUT"
 
 {
