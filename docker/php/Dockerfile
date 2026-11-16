@@ -6,7 +6,7 @@ WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
-FROM php:8.5-apache@sha256:fce5eaf640e8fb620aac9aaf53efebe5584b3f3c1f2033b78b08be252be92adc
+FROM php:8.5-apache@sha256:08af36df144462d84c7f16190557eec06cb9f656882685610b712a15eec54d46
 
 # Image metadata
 ARG APP_VERSION=dev
