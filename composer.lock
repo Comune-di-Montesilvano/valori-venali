@@ -244,11 +244,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.3.5",
+            "version": "2.3.6",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/645a1bd6bead15fc1b8474137467961d0fa30a79",
-                "reference": "645a1bd6bead15fc1b8474137467961d0fa30a79",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/00cedebb76cc82c1592414fa4f616cefdccda16f",
+                "reference": "00cedebb76cc82c1592414fa4f616cefdccda16f",
                 "shasum": ""
             },
             "require": {
@@ -304,7 +304,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-11-03T12:14:22+00:00"
+            "time": "2026-11-15T19:58:26+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -690,16 +690,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "13.4.6",
+            "version": "13.4.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "4821376960d0e1e5a7b7b700955ebcab33ecd71b"
+                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/4821376960d0e1e5a7b7b700955ebcab33ecd71b",
-                "reference": "4821376960d0e1e5a7b7b700955ebcab33ecd71b",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
+                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
                 "shasum": ""
             },
             "require": {
@@ -713,7 +713,7 @@
                 "phar-io/manifest": "^2.0.4",
                 "phar-io/version": "^3.2.1",
                 "php": ">=8.4.1",
-                "phpunit/php-code-coverage": "^14.5.0",
+                "phpunit/php-code-coverage": "^14.5.2",
                 "phpunit/php-file-iterator": "^7.0.2",
                 "phpunit/php-invoker": "^7.0.0",
                 "phpunit/php-text-template": "^6.0.1",
@@ -729,7 +729,7 @@
                 "sebastian/object-enumerator": "^8.1.0",
                 "sebastian/recursion-context": "^8.0.1",
                 "sebastian/type": "^7.0.2",
-                "sebastian/version": "^7.0.1",
+                "sebastian/version": "^7.1.0",
                 "staabm/side-effects-detector": "^1.0.5"
             },
             "bin": [
@@ -770,7 +770,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.6"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.7"
             },
             "funding": [
                 {
@@ -778,7 +778,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-11-02T07:12:28+00:00"
+            "time": "2026-11-13T11:10:10+00:00"
         },
         {
             "name": "sebastian/cli-parser",
