@@ -11,7 +11,7 @@ services:
   # attestazioni gh. Serve accesso in uscita a ghcr.io e a Sigstore.
   verify-image:
     # Variante -dev: contiene una shell (busybox) per il controllo opt-in.
-    image: ghcr.io/sigstore/cosign/cosign:v3.1.4-dev@sha256:8af1a2cf9fba903fdfc6bdafdc25f7b13ef34ad722095543ea787fb96f7240c1
+    image: ghcr.io/sigstore/cosign/cosign:v3.1.5-dev@sha256:d35084676a35418684f41790a4929fd1834405a09f59743d9295bd1244f1ee04
     container_name: valori_venali_verify
     restart: "no"
     environment:
